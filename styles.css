@@ -1,7 +1,7 @@
 ﻿:root {
   color-scheme: light;
-  --bg: radial-gradient(circle at top, #eff6ff 0%, #f8fafc 38%, #edf2ff 100%);
-  --panel: rgba(255, 255, 255, 0.88);
+  --bg: radial-gradient(circle at top, #eff6ff 0%, #f8fafc 40%, #edf2ff 100%);
+  --panel: rgba(255, 255, 255, 0.9);
   --panel-strong: #ffffff;
   --line: #cbd5e1;
   --line-strong: #475569;
@@ -46,11 +46,16 @@ button {
   width: min(100%, 600px);
 }
 
+.screen-game {
+  width: min(100%, 980px);
+}
+
 .hero-card,
 .panel-card,
 .game-panel,
 .complete-card,
-.modal-card {
+.modal-card,
+.game-help-panel {
   background: var(--panel);
   border: 1px solid rgba(148, 163, 184, 0.26);
   box-shadow: var(--shadow);
@@ -60,7 +65,8 @@ button {
 .hero-card,
 .panel-card,
 .complete-card,
-.modal-card {
+.modal-card,
+.game-help-panel {
   border-radius: 28px;
 }
 
@@ -71,7 +77,6 @@ button {
 }
 
 .game-panel {
-  width: min(100%, 540px);
   border-radius: 24px;
 }
 
@@ -89,7 +94,7 @@ button {
   border-radius: 14px;
   border: 1px solid transparent;
   cursor: pointer;
-  transition: transform 140ms ease, background-color 140ms ease, border-color 140ms ease, color 140ms ease;
+  transition: transform 140ms ease, background-color 140ms ease, border-color 140ms ease, color 140ms ease, opacity 140ms ease;
 }
 
 .icon-btn:hover,
@@ -160,8 +165,9 @@ button {
 }
 
 h1,
- h2,
- h3 {
+h2,
+h3,
+p {
   margin: 0;
 }
 
@@ -177,7 +183,11 @@ h2 {
 .panel-copy,
 .selection-text,
 .modal-copy,
-.complete-card p {
+.complete-card p,
+.help-body p,
+.help-body li,
+.settings-label,
+.difficulty-btn span {
   color: var(--muted);
   line-height: 1.55;
 }
@@ -185,6 +195,16 @@ h2 {
 .hero-card {
   position: relative;
   overflow: hidden;
+}
+
+.home-top-actions {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 2;
+  display: flex;
+  gap: 10px;
+  align-items: center;
 }
 
 .hero-layout {
@@ -196,11 +216,18 @@ h2 {
 
 .hero-actions,
 .daily-footer,
-.confirm-actions {
+.confirm-actions,
+.game-header-actions,
+.help-panel-head {
   display: flex;
   gap: 12px;
-  flex-wrap: wrap;
   align-items: center;
+}
+
+.hero-actions,
+.daily-footer,
+.confirm-actions {
+  flex-wrap: wrap;
   justify-content: space-between;
 }
 
@@ -271,13 +298,6 @@ h2 {
   border-bottom: 2px solid var(--line-strong);
 }
 
-.screen-home .icon-btn {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  z-index: 2;
-}
-
 .panel-head,
 .topbar,
 .meta-row,
@@ -286,6 +306,10 @@ h2 {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+}
+
+.topbar-game {
+  align-items: flex-start;
 }
 
 .panel-head {
@@ -337,6 +361,7 @@ h2 {
 .calendar-grid .calendar-empty {
   aspect-ratio: 1;
   border-radius: 16px;
+  position: relative;
 }
 
 .calendar-grid button.today {
@@ -348,6 +373,16 @@ h2 {
   border-color: var(--accent);
   color: var(--accent);
   font-weight: 700;
+}
+
+.calendar-grid button.done::after {
+  content: "OK";
+  position: absolute;
+  right: 7px;
+  bottom: 6px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: var(--success);
 }
 
 .calendar-grid button:disabled {
@@ -379,11 +414,6 @@ h2 {
   font-size: 1.1rem;
 }
 
-.difficulty-btn span,
-.settings-label {
-  color: var(--muted);
-}
-
 .game-badge {
   display: inline-flex;
   min-height: 28px;
@@ -397,15 +427,64 @@ h2 {
   font-weight: 700;
 }
 
-.meta-row {
+.mistake-meta,
+.meta-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  color: var(--muted);
+  text-align: center;
+}
+
+.mistake-meta {
+  min-width: 120px;
+  color: var(--danger);
+  font-weight: 700;
+}
+
+.meta-row-game {
   margin: 14px 0 16px;
 }
 
-.status,
-.hint-meta {
-  min-height: 20px;
-  color: var(--muted);
-  font-size: 0.95rem;
+.game-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 18px;
+  align-items: start;
+}
+
+.game-layout.help-open {
+  grid-template-columns: minmax(0, 1fr) 290px;
+}
+
+.board-column {
+  min-width: 0;
+}
+
+.game-help-panel {
+  padding: 18px;
+  display: grid;
+  gap: 14px;
+}
+
+.help-body {
+  display: grid;
+  gap: 14px;
+}
+
+.help-body section {
+  display: grid;
+  gap: 8px;
+}
+
+.help-body ul {
+  margin: 0;
+  padding-left: 18px;
 }
 
 .board {
@@ -551,22 +630,24 @@ h2 {
   display: grid;
   place-items: center;
   padding: 20px;
+  z-index: 20;
 }
 
 .modal-card {
-  width: min(100%, 380px);
+  width: min(100%, 420px);
   padding: 22px;
 }
 
-.settings-card {
-  display: grid;
-  gap: 16px;
+.help-card {
+  width: min(100%, 560px);
 }
 
+.settings-card,
 .settings-section,
-.settings-home-wrap {
+.settings-home-wrap,
+.confirm-card {
   display: grid;
-  gap: 10px;
+  gap: 16px;
 }
 
 .complete-card {
@@ -661,6 +742,12 @@ h2 {
   }
 }
 
+@media (max-width: 900px) {
+  .game-layout.help-open {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 680px) {
   .hero-layout {
     grid-template-columns: 1fr;
@@ -680,7 +767,8 @@ h2 {
   .panel-card,
   .game-panel,
   .modal-card,
-  .complete-card {
+  .complete-card,
+  .game-help-panel {
     padding: 18px;
     border-radius: 22px;
   }
@@ -689,9 +777,16 @@ h2 {
   .topbar,
   .meta-row,
   .daily-footer,
-  .confirm-actions {
+  .confirm-actions,
+  .help-panel-head {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .home-top-actions {
+    position: static;
+    margin-bottom: 16px;
+    justify-content: flex-end;
   }
 
   .action-buttons,
@@ -703,5 +798,3 @@ h2 {
     grid-template-columns: repeat(3, 1fr);
   }
 }
-
-
