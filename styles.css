@@ -1,0 +1,576 @@
+﻿:root {
+  color-scheme: light;
+  --bg: linear-gradient(180deg, #eef2ff 0%, #f7f8fb 48%, #eef2f7 100%);
+  --panel: rgba(255, 255, 255, 0.9);
+  --panel-strong: #ffffff;
+  --line: #cbd5e1;
+  --line-strong: #475569;
+  --text: #0f172a;
+  --muted: #64748b;
+  --accent: #1d4ed8;
+  --accent-soft: #dbeafe;
+  --navy-soft: #e7edff;
+  --danger: #dc2626;
+  --success: #16a34a;
+  --shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: "Segoe UI", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+button {
+  font: inherit;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.app-shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.screen {
+  width: min(100%, 560px);
+}
+
+.hero-card,
+.panel-card,
+.game-panel,
+.complete-card {
+  background: var(--panel);
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(10px);
+}
+
+.hero-card,
+.panel-card,
+.complete-card {
+  border-radius: 28px;
+  padding: 28px;
+}
+
+.game-panel {
+  width: min(100%, 540px);
+  border-radius: 24px;
+  padding: 20px;
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  color: var(--accent);
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+}
+
+h1 {
+  font-size: clamp(2.2rem, 7vw, 3.4rem);
+}
+
+h2 {
+  font-size: 1.6rem;
+}
+
+.hero-copy,
+.panel-copy,
+.selection-text,
+.complete-card p {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.hero-copy {
+  margin: 12px 0 24px;
+}
+
+.hero-actions,
+.daily-footer {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.primary-btn,
+.secondary-btn,
+.ghost-btn,
+.action-buttons button,
+.number-pad button,
+.difficulty-btn,
+.month-tab,
+.calendar-grid button {
+  min-height: 46px;
+  border-radius: 14px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: transform 140ms ease, background-color 140ms ease, border-color 140ms ease, color 140ms ease;
+}
+
+.primary-btn,
+.secondary-btn,
+.ghost-btn,
+.action-buttons button,
+.number-pad button {
+  padding: 0 16px;
+}
+
+.primary-btn:hover,
+.secondary-btn:hover,
+.ghost-btn:hover,
+.action-buttons button:hover,
+.number-pad button:hover,
+.difficulty-btn:hover,
+.month-tab:hover,
+.calendar-grid button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.primary-btn {
+  background: var(--accent);
+  color: #ffffff;
+}
+
+.secondary-btn {
+  background: var(--panel-strong);
+  border-color: var(--line);
+  color: var(--text);
+}
+
+.ghost-btn {
+  background: transparent;
+  border-color: var(--line);
+  color: var(--text);
+}
+
+.panel-head,
+.topbar,
+.meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.panel-head {
+  margin-bottom: 16px;
+}
+
+.month-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 18px 0 10px;
+}
+
+.month-tab {
+  background: var(--panel-strong);
+  border-color: var(--line);
+  color: var(--muted);
+}
+
+.month-tab.active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.calendar-weekdays,
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+}
+
+.calendar-weekdays {
+  margin: 14px 0 10px;
+  color: var(--muted);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.calendar-grid button,
+.calendar-grid .calendar-empty {
+  aspect-ratio: 1;
+  border-radius: 16px;
+}
+
+.calendar-grid button {
+  border-color: var(--line);
+  background: var(--panel-strong);
+}
+
+.calendar-grid button.today {
+  border-color: var(--accent);
+}
+
+.calendar-grid button.selected {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.calendar-grid button:disabled {
+  cursor: not-allowed;
+  color: #94a3b8;
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+.calendar-grid .calendar-empty {
+  background: rgba(255, 255, 255, 0.35);
+  border: 1px dashed rgba(148, 163, 184, 0.28);
+}
+
+.selection-text {
+  margin: 0;
+}
+
+.difficulty-grid {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.difficulty-btn {
+  background: var(--panel-strong);
+  border-color: var(--line);
+  text-align: left;
+  padding: 18px;
+  display: grid;
+  gap: 6px;
+}
+
+.difficulty-btn strong {
+  font-size: 1.1rem;
+}
+
+.difficulty-btn span {
+  color: var(--muted);
+}
+
+.game-badge {
+  display: inline-flex;
+  min-height: 28px;
+  align-items: center;
+  padding: 0 10px;
+  margin-bottom: 8px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.meta-row {
+  margin: 14px 0 16px;
+}
+
+.status,
+.hint-meta {
+  min-height: 20px;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.board {
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  width: 100%;
+  background: var(--line-strong);
+  border: 2px solid var(--line-strong);
+  overflow: hidden;
+  border-radius: 16px;
+}
+
+.cell {
+  position: relative;
+  aspect-ratio: 1;
+  border: 1px solid var(--line);
+  background: var(--panel-strong);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  padding: 0;
+  overflow: hidden;
+  line-height: 1;
+}
+
+.cell.block-right {
+  border-right: 2px solid var(--line-strong);
+}
+
+.cell.block-bottom {
+  border-bottom: 2px solid var(--line-strong);
+}
+
+.cell.related {
+  background: #f2f6ff;
+}
+
+.cell.same-number {
+  background: var(--navy-soft);
+}
+
+.cell.selected {
+  background: #cddcff;
+}
+
+.cell.fixed {
+  font-weight: 700;
+}
+
+.cell.wrong {
+  color: var(--danger);
+}
+
+.cell.conflict-blink {
+  animation: conflict-blink 0.3s ease-in-out 3;
+}
+
+.cell-value {
+  font-size: clamp(1.1rem, 3vw, 1.6rem);
+  line-height: 1;
+}
+
+.notes-grid {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  padding: 4px;
+  gap: 1px;
+  font-size: clamp(0.42rem, 1.35vw, 0.72rem);
+  line-height: 1;
+  color: var(--muted);
+}
+
+.note-item {
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  min-height: 0;
+}
+
+.controls {
+  margin-top: 16px;
+  display: grid;
+  gap: 10px;
+}
+
+.action-buttons,
+.number-pad {
+  display: grid;
+  gap: 8px;
+}
+
+.action-buttons {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.number-pad {
+  grid-template-columns: repeat(9, 1fr);
+}
+
+.action-buttons button,
+.number-pad button {
+  background: var(--panel-strong);
+  border-color: var(--line);
+  color: var(--text);
+}
+
+.number-pad-btn {
+  position: relative;
+  padding: 0;
+}
+
+.number-pad-value {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+}
+
+.number-pad-count {
+  position: absolute;
+  right: 8px;
+  bottom: 6px;
+  font-size: 0.68rem;
+  line-height: 1;
+  color: var(--muted);
+}
+
+.action-buttons button.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.number-pad.note-active button {
+  background: #e5e7eb;
+}
+
+.number-pad button:disabled,
+.action-buttons button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.complete-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.24);
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+
+.complete-card {
+  width: min(100%, 360px);
+  text-align: center;
+  animation: pop-in 280ms ease-out;
+}
+
+.checkmark-wrap {
+  position: relative;
+  width: 90px;
+  height: 90px;
+  margin: 0 auto 18px;
+}
+
+.checkmark-circle {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: rgba(22, 163, 74, 0.12);
+  border: 3px solid rgba(22, 163, 74, 0.24);
+  animation: pulse-ring 800ms ease-out;
+}
+
+.checkmark-stem,
+.checkmark-kick {
+  position: absolute;
+  background: var(--success);
+  border-radius: 999px;
+  transform-origin: left center;
+}
+
+.checkmark-stem {
+  width: 10px;
+  height: 38px;
+  left: 39px;
+  top: 38px;
+  transform: rotate(45deg) scaleY(0);
+  animation: stem-grow 300ms ease-out 180ms forwards;
+}
+
+.checkmark-kick {
+  width: 36px;
+  height: 10px;
+  left: 46px;
+  top: 63px;
+  transform: rotate(-45deg) scaleX(0);
+  animation: kick-grow 260ms ease-out 420ms forwards;
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes pulse-ring {
+  from {
+    transform: scale(0.72);
+    opacity: 0.6;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes stem-grow {
+  to {
+    transform: rotate(45deg) scaleY(1);
+  }
+}
+
+@keyframes kick-grow {
+  to {
+    transform: rotate(-45deg) scaleX(1);
+  }
+}
+
+@keyframes conflict-blink {
+  0%,
+  100% {
+    background: var(--navy-soft);
+  }
+  50% {
+    background: #fca5a5;
+  }
+}
+
+@media (max-width: 560px) {
+  .app-shell {
+    padding: 14px;
+  }
+
+  .hero-card,
+  .panel-card,
+  .game-panel,
+  .complete-card {
+    padding: 18px;
+    border-radius: 22px;
+  }
+
+  .panel-head,
+  .topbar,
+  .meta-row,
+  .daily-footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .month-tabs {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .action-buttons {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .number-pad {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
