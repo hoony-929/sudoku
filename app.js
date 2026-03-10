@@ -1,879 +1,109 @@
-﻿const TODAY = { year: 2026, month: 3, day: 11 };
-const START_MONTH = 1;
-
-const BASE_SOLUTION = [
-  [5, 3, 4, 6, 7, 8, 9, 1, 2],
-  [6, 7, 2, 1, 9, 5, 3, 4, 8],
-  [1, 9, 8, 3, 4, 2, 5, 6, 7],
-  [8, 5, 9, 7, 6, 1, 4, 2, 3],
-  [4, 2, 6, 8, 5, 3, 7, 9, 1],
-  [7, 1, 3, 9, 2, 4, 8, 5, 6],
-  [9, 6, 1, 5, 3, 7, 2, 8, 4],
-  [2, 8, 7, 4, 1, 9, 6, 3, 5],
-  [3, 4, 5, 2, 8, 6, 1, 7, 9]
-];
-
-const DIFFICULTY_CONFIG = {
-  easy: { label: "일반 모드 · 하", removals: 40 },
-  medium: { label: "일반 모드 · 중", removals: 48 },
-  hard: { label: "일반 모드 · 상", removals: 54 },
-  daily: { label: "데일리 도전", removals: 52 }
-};
-
-const screens = {
-  home: document.getElementById("homeScreen"),
-  daily: document.getElementById("dailyScreen"),
-  difficulty: document.getElementById("difficultyScreen"),
-  game: document.getElementById("gameScreen")
-};
-
-const boardElement = document.getElementById("board");
-const statusElement = document.getElementById("status");
-const hintMetaElement = document.getElementById("hintMeta");
-const numberPadElement = document.getElementById("numberPad");
-const hintCountElement = document.getElementById("hintCount");
-const gameBadgeElement = document.getElementById("gameBadge");
-const gameTitleElement = document.getElementById("gameTitle");
-const dailyTitleElement = document.getElementById("dailyTitle");
-const monthTabsElement = document.getElementById("monthTabs");
-const calendarGridElement = document.getElementById("calendarGrid");
-const dailySelectionTextElement = document.getElementById("dailySelectionText");
-const completeOverlayElement = document.getElementById("completeOverlay");
-
-const undoBtn = document.getElementById("undoBtn");
-const eraseBtn = document.getElementById("eraseBtn");
-const noteBtn = document.getElementById("noteBtn");
-const hintBtn = document.getElementById("hintBtn");
-
-const state = {
-  currentScreen: "home",
-  dailySelectedMonth: TODAY.month,
-  dailySelectedDay: TODAY.day,
-  game: null
-};
-
-function daysInMonth(year, month) {
-  return new Date(year, month, 0).getDate();
-}
-
-function mulberry32(seed) {
-  let current = seed >>> 0;
-  return function random() {
-    current += 0x6d2b79f5;
-    let result = current;
-    result = Math.imul(result ^ (result >>> 15), result | 1);
-    result ^= result + Math.imul(result ^ (result >>> 7), result | 61);
-    return ((result ^ (result >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-function shuffled(array, random) {
-  const copy = [...array];
-  for (let index = copy.length - 1; index > 0; index -= 1) {
-    const target = Math.floor(random() * (index + 1));
-    [copy[index], copy[target]] = [copy[target], copy[index]];
-  }
-  return copy;
-}
-
-function cloneGrid(grid) {
-  return grid.map((row) => [...row]);
-}
-
-function transpose(grid) {
-  return grid[0].map((_, colIndex) => grid.map((row) => row[colIndex]));
-}
-
-function swapRowsWithinBands(grid, random) {
-  const next = [];
-  for (let band = 0; band < 3; band += 1) {
-    const rows = [0, 1, 2].map((offset) => grid[band * 3 + offset]);
-    next.push(...shuffled(rows, random));
-  }
-  return next;
-}
-
-function swapBands(grid, random) {
-  const bands = [0, 1, 2].map((band) => grid.slice(band * 3, band * 3 + 3));
-  return shuffled(bands, random).flat();
-}
-
-function remapDigits(grid, random) {
-  const digits = shuffled([1, 2, 3, 4, 5, 6, 7, 8, 9], random);
-  const map = new Map(digits.map((digit, index) => [index + 1, digit]));
-  return grid.map((row) => row.map((value) => map.get(value)));
-}
-
-function generateSolution(seed) {
-  const random = mulberry32(seed);
-  let grid = cloneGrid(BASE_SOLUTION);
-  grid = swapRowsWithinBands(grid, random);
-  grid = swapBands(grid, random);
-  grid = transpose(grid);
-  grid = swapRowsWithinBands(grid, random);
-  grid = swapBands(grid, random);
-  grid = transpose(grid);
-  return remapDigits(grid, random);
-}
-
-function generatePuzzle(solution, removals, seed) {
-  const random = mulberry32(seed ^ 0x9e3779b9);
-  const puzzle = cloneGrid(solution);
-  const positions = [];
-
-  for (let row = 0; row < 9; row += 1) {
-    for (let col = 0; col < 9; col += 1) {
-      positions.push({ row, col });
-    }
-  }
-
-  const rowClues = new Array(9).fill(9);
-  const colClues = new Array(9).fill(9);
-  const blockClues = new Array(9).fill(9);
-  let removed = 0;
-
-  shuffled(positions, random).forEach(({ row, col }) => {
-    if (removed >= removals) {
-      return;
-    }
-
-    const block = Math.floor(row / 3) * 3 + Math.floor(col / 3);
-    if (rowClues[row] <= 3 || colClues[col] <= 3 || blockClues[block] <= 3) {
-      return;
-    }
-
-    puzzle[row][col] = 0;
-    rowClues[row] -= 1;
-    colClues[col] -= 1;
-    blockClues[block] -= 1;
-    removed += 1;
-  });
-
-  return puzzle;
-}
-
-function createCells(puzzle) {
-  return puzzle.map((row, rowIndex) =>
-    row.map((value, colIndex) => ({
-      row: rowIndex,
-      col: colIndex,
-      value,
-      fixed: value !== 0,
-      notes: []
-    }))
-  );
-}
-
-function cloneCells(cells) {
-  return cells.map((row) => row.map((cell) => ({ ...cell, notes: [...cell.notes] })));
-}
-
-function gameSnapshot(game) {
-  return {
-    cells: cloneCells(game.cells),
-    selected: game.selected ? { ...game.selected } : null,
-    noteMode: game.noteMode,
-    hintsRemaining: game.hintsRemaining,
-    highlightNumber: game.highlightNumber,
-    blinkKey: game.blinkKey,
-    completed: game.completed
-  };
-}
-
-function restoreSnapshot(game, snapshot) {
-  game.cells = cloneCells(snapshot.cells);
-  game.selected = snapshot.selected ? { ...snapshot.selected } : null;
-  game.noteMode = snapshot.noteMode;
-  game.hintsRemaining = snapshot.hintsRemaining;
-  game.highlightNumber = snapshot.highlightNumber;
-  game.blinkKey = snapshot.blinkKey || null;
-  game.completed = snapshot.completed;
-}
-
-function buildSession({ mode, title, badge, seed, removals }) {
-  const solution = generateSolution(seed);
-  const puzzle = generatePuzzle(solution, removals, seed + 17);
-  return {
-    mode,
-    title,
-    badge,
-    solution,
-    cells: createCells(puzzle),
-    selected: null,
-    noteMode: false,
-    hintsRemaining: 3,
-    history: [],
-    highlightNumber: null,
-    blinkKey: null,
-    status: "칸을 선택하세요.",
-    completed: false
-  };
-}
-
-function openScreen(screenName) {
-  state.currentScreen = screenName;
-  Object.entries(screens).forEach(([name, element]) => {
-    element.classList.toggle("hidden", name !== screenName);
-  });
-}
-
-function setStatus(message) {
-  if (state.game) {
-    state.game.status = message;
-  }
-  statusElement.textContent = message;
-}
-
-function getSelectedCell(game) {
-  if (!game || !game.selected) {
-    return null;
-  }
-  return game.cells[game.selected.row][game.selected.col];
-}
-
-function isRelated(row, col, selected) {
-  if (!selected) {
-    return false;
-  }
-
-  const sameRow = selected.row === row;
-  const sameCol = selected.col === col;
-  const sameBlock =
-    Math.floor(selected.row / 3) === Math.floor(row / 3) &&
-    Math.floor(selected.col / 3) === Math.floor(col / 3);
-
-  return sameRow || sameCol || sameBlock;
-}
-
-function hasConflict(game, row, col, value) {
-  if (!value) {
-    return false;
-  }
-
-  for (let index = 0; index < 9; index += 1) {
-    if (index !== col && game.cells[row][index].value === value) {
-      return true;
-    }
-    if (index !== row && game.cells[index][col].value === value) {
-      return true;
-    }
-  }
-
-  const startRow = Math.floor(row / 3) * 3;
-  const startCol = Math.floor(col / 3) * 3;
-  for (let currentRow = startRow; currentRow < startRow + 3; currentRow += 1) {
-    for (let currentCol = startCol; currentCol < startCol + 3; currentCol += 1) {
-      const sameCell = currentRow === row && currentCol === col;
-      if (!sameCell && game.cells[currentRow][currentCol].value === value) {
-        return true;
-      }
-    }
-  }
-
-  return false;
-}
-
-function getRowColConflicts(game, row, col, value) {
-  const conflicts = [];
-  if (!value) {
-    return conflicts;
-  }
-
-  for (let index = 0; index < 9; index += 1) {
-    if (index !== col && game.cells[row][index].value === value) {
-      conflicts.push({ row, col: index });
-    }
-    if (index !== row && game.cells[index][col].value === value) {
-      conflicts.push({ row: index, col });
-    }
-  }
-
-  return conflicts;
-}
-
-function triggerConflictBlink(game, conflicts) {
-  if (conflicts.length === 0) {
-    return;
-  }
-
-  game.blinkKey = `${Date.now()}-${Math.random()}`;
-  renderGame();
-
-  setTimeout(() => {
-    if (!state.game || state.game !== game) {
-      return;
-    }
-    if (state.game.blinkKey === game.blinkKey) {
-      state.game.blinkKey = null;
-      renderGame();
-    }
-  }, 900);
-}
-
-function isConflictBlinkCell(game, cell) {
-  if (!game.blinkKey || !game.selected) {
-    return false;
-  }
-
-  const selectedCell = getSelectedCell(game);
-  if (!selectedCell || selectedCell.value === 0) {
-    return false;
-  }
-
-  return getRowColConflicts(game, selectedCell.row, selectedCell.col, selectedCell.value).some(
-    (target) => target.row === cell.row && target.col === cell.col
-  );
-}
-
-function isWrongCell(game, cell) {
-  return !cell.fixed && cell.value !== 0 && cell.value !== game.solution[cell.row][cell.col];
-}
-
-function isComplete(game) {
-  return game.cells.every((row) =>
-    row.every((cell) => cell.value !== 0 && cell.value === game.solution[cell.row][cell.col])
-  );
-}
-
-function saveHistory(game) {
-  game.history.push(gameSnapshot(game));
-}
-
-function updateHighlightFromSelection(game) {
-  const cell = getSelectedCell(game);
-  game.highlightNumber = cell && cell.value !== 0 ? cell.value : null;
-}
-
-function clearNotesFromRowCol(game, row, col, number) {
-  for (let index = 0; index < 9; index += 1) {
-    if (index !== col) {
-      game.cells[row][index].notes = game.cells[row][index].notes.filter((note) => note !== number);
-    }
-    if (index !== row) {
-      game.cells[index][col].notes = game.cells[index][col].notes.filter((note) => note !== number);
-    }
-  }
-}
-
-function isNumberCompleteAcrossBlocks(game, number) {
-  for (let blockRow = 0; blockRow < 3; blockRow += 1) {
-    for (let blockCol = 0; blockCol < 3; blockCol += 1) {
-      let found = false;
-      for (let row = blockRow * 3; row < blockRow * 3 + 3; row += 1) {
-        for (let col = blockCol * 3; col < blockCol * 3 + 3; col += 1) {
-          if (game.cells[row][col].value === number) {
-            found = true;
-          }
-        }
-      }
-      if (!found) {
-        return false;
-      }
-    }
-  }
-  return true;
-}
-
-function getPlacedCount(game, number) {
-  let count = 0;
-  game.cells.forEach((row) => {
-    row.forEach((cell) => {
-      if (cell.value === number) {
-        count += 1;
-      }
-    });
-  });
-  return count;
-}
-
-function isFutureDate(month, day) {
-  if (month > TODAY.month) {
-    return true;
-  }
-  if (month < TODAY.month) {
-    return false;
-  }
-  return day > TODAY.day;
-}
-
-function normalizeSelectedDate() {
-  if (state.dailySelectedMonth > TODAY.month) {
-    state.dailySelectedMonth = TODAY.month;
-    state.dailySelectedDay = TODAY.day;
-  }
-
-  const maxDay = state.dailySelectedMonth === TODAY.month ? TODAY.day : daysInMonth(TODAY.year, state.dailySelectedMonth);
-  if (state.dailySelectedDay > maxDay) {
-    state.dailySelectedDay = maxDay;
-  }
-}
-
-function renderMonthTabs() {
-  monthTabsElement.innerHTML = "";
-  for (let month = START_MONTH; month <= TODAY.month; month += 1) {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "month-tab";
-    button.textContent = `${month}월`;
-    if (month === state.dailySelectedMonth) {
-      button.classList.add("active");
-    }
-    button.addEventListener("click", () => {
-      state.dailySelectedMonth = month;
-      normalizeSelectedDate();
-      renderDailyCalendar();
-    });
-    monthTabsElement.appendChild(button);
-  }
-}
-
-function renderCalendar() {
-  calendarGridElement.innerHTML = "";
-  const firstWeekday = new Date(TODAY.year, state.dailySelectedMonth - 1, 1).getDay();
-  const monthDays = daysInMonth(TODAY.year, state.dailySelectedMonth);
-
-  for (let emptyIndex = 0; emptyIndex < firstWeekday; emptyIndex += 1) {
-    const emptyCell = document.createElement("div");
-    emptyCell.className = "calendar-empty";
-    calendarGridElement.appendChild(emptyCell);
-  }
-
-  for (let day = 1; day <= monthDays; day += 1) {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.textContent = String(day);
-
-    const isToday = state.dailySelectedMonth === TODAY.month && day === TODAY.day;
-    const isSelected = day === state.dailySelectedDay;
-    const disabled = isFutureDate(state.dailySelectedMonth, day);
-
-    if (isToday) {
-      button.classList.add("today");
-    }
-    if (isSelected) {
-      button.classList.add("selected");
-    }
-    if (disabled) {
-      button.disabled = true;
-    } else {
-      button.addEventListener("click", () => {
-        state.dailySelectedDay = day;
-        renderDailyCalendar();
-      });
-    }
-
-    calendarGridElement.appendChild(button);
-  }
-}
-
-function renderDailySelectionText() {
-  const selectedText = `${state.dailySelectedMonth}월 ${state.dailySelectedDay}일 선택됨`;
-  const isToday = state.dailySelectedMonth === TODAY.month && state.dailySelectedDay === TODAY.day;
-  dailySelectionTextElement.textContent = isToday
-    ? `${selectedText} · 오늘의 데일리 퍼즐이 열립니다.`
-    : `${selectedText} · 선택한 날짜 기준 랜덤 퍼즐이 열립니다.`;
-}
-
-function renderDailyCalendar() {
-  dailyTitleElement.textContent = `${TODAY.year}년 ${state.dailySelectedMonth}월`;
-  renderMonthTabs();
-  renderCalendar();
-  renderDailySelectionText();
-}
-
-function renderBoard() {
-  const game = state.game;
-  boardElement.innerHTML = "";
-
-  game.cells.forEach((row) => {
-    row.forEach((cell) => {
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = "cell";
-      button.setAttribute("aria-label", `${cell.row + 1}행 ${cell.col + 1}열`);
-
-      if ((cell.col + 1) % 3 === 0 && cell.col !== 8) {
-        button.classList.add("block-right");
-      }
-      if ((cell.row + 1) % 3 === 0 && cell.row !== 8) {
-        button.classList.add("block-bottom");
-      }
-      if (cell.fixed) {
-        button.classList.add("fixed");
-      }
-      if (game.selected && game.selected.row === cell.row && game.selected.col === cell.col) {
-        button.classList.add("selected");
-      } else if (isRelated(cell.row, cell.col, game.selected)) {
-        button.classList.add("related");
-      }
-      if (game.highlightNumber && cell.value === game.highlightNumber) {
-        button.classList.add("same-number");
-      }
-      if (isConflictBlinkCell(game, cell)) {
-        button.classList.add("conflict-blink");
-      }
-      if (isWrongCell(game, cell)) {
-        button.classList.add("wrong");
-      }
-
-      if (cell.value !== 0) {
-        const value = document.createElement("span");
-        value.className = "cell-value";
-        value.textContent = String(cell.value);
-        button.appendChild(value);
-      } else {
-        const notesGrid = document.createElement("div");
-        notesGrid.className = "notes-grid";
-        for (let number = 1; number <= 9; number += 1) {
-          const noteItem = document.createElement("div");
-          noteItem.className = "note-item";
-          noteItem.textContent = cell.notes.includes(number) ? String(number) : "";
-          notesGrid.appendChild(noteItem);
-        }
-        button.appendChild(notesGrid);
-      }
-
-      button.addEventListener("click", () => selectCell(cell.row, cell.col));
-      boardElement.appendChild(button);
-    });
-  });
-}
-
-function renderNumberPad() {
-  const game = state.game;
-  numberPadElement.innerHTML = "";
-  numberPadElement.classList.toggle("note-active", game.noteMode);
-
-  for (let number = 1; number <= 9; number += 1) {
-    const button = document.createElement("button");
-    const value = document.createElement("span");
-    const count = document.createElement("span");
-
-    button.type = "button";
-    button.className = "number-pad-btn";
-    value.className = "number-pad-value";
-    count.className = "number-pad-count";
-
-    value.textContent = String(number);
-    count.textContent = String(getPlacedCount(game, number));
-
-    button.disabled = isNumberCompleteAcrossBlocks(game, number);
-    button.appendChild(value);
-    button.appendChild(count);
-    button.addEventListener("click", () => handleNumberInput(number));
-    numberPadElement.appendChild(button);
-  }
-}
-
-function renderGameMeta() {
-  const game = state.game;
-  gameBadgeElement.textContent = game.badge;
-  gameTitleElement.textContent = game.title;
-  statusElement.textContent = game.status;
-  hintMetaElement.textContent = `힌트 ${game.hintsRemaining}회 남음`;
-  hintCountElement.textContent = String(game.hintsRemaining);
-  noteBtn.classList.toggle("active", game.noteMode);
-  undoBtn.disabled = game.history.length === 0;
-  hintBtn.disabled = game.hintsRemaining === 0;
-}
-
-function renderGame() {
-  if (!state.game) {
-    return;
-  }
-  renderGameMeta();
-  renderBoard();
-  renderNumberPad();
-}
-
-function closeCompletionOverlay() {
-  completeOverlayElement.classList.add("hidden");
-  completeOverlayElement.setAttribute("aria-hidden", "true");
-}
-
-function showCompletionOverlay() {
-  completeOverlayElement.classList.remove("hidden");
-  completeOverlayElement.setAttribute("aria-hidden", "false");
-}
-
-function startGame(options) {
-  state.game = buildSession(options);
-  closeCompletionOverlay();
-  openScreen("game");
-  renderGame();
-}
-
-function startDailyChallenge() {
-  const isToday = state.dailySelectedMonth === TODAY.month && state.dailySelectedDay === TODAY.day;
-  const dateSeed = Number(`${TODAY.year}${String(state.dailySelectedMonth).padStart(2, "0")}${String(state.dailySelectedDay).padStart(2, "0")}`);
-  const seed = isToday ? dateSeed : Math.floor(Math.random() * 1000000) + dateSeed;
-  startGame({
-    mode: "daily",
-    title: `${state.dailySelectedMonth}월 ${state.dailySelectedDay}일 퍼즐`,
-    badge: isToday ? "데일리 도전" : "랜덤 도전",
-    seed,
-    removals: DIFFICULTY_CONFIG.daily.removals
-  });
-}
-
-function startClassicMode(difficulty) {
-  const config = DIFFICULTY_CONFIG[difficulty];
-  const seed = Math.floor(Math.random() * 1000000) + Date.now();
-  startGame({
-    mode: difficulty,
-    title: `난이도 ${difficulty === "easy" ? "하" : difficulty === "medium" ? "중" : "상"}`,
-    badge: config.label,
-    seed,
-    removals: config.removals
-  });
-}
-
-function selectCell(row, col) {
-  const game = state.game;
-  game.selected = { row, col };
-  game.blinkKey = null;
-  updateHighlightFromSelection(game);
-
-  const cell = game.cells[row][col];
-  if (cell.fixed) {
-    setStatus("기본으로 주어진 숫자는 수정할 수 없습니다.");
-  } else if (cell.value !== 0) {
-    setStatus(game.noteMode ? "노트 모드가 켜져 있습니다." : "같은 숫자들이 함께 강조됩니다.");
-  } else {
-    setStatus(game.noteMode ? "노트 모드입니다." : "숫자를 입력하세요.");
-  }
-
-  renderGame();
-}
-
-function toggleValue(game, cell, number) {
-  if (cell.value === number) {
-    cell.value = 0;
-    cell.notes = [];
-    return { message: "숫자를 지웠습니다.", blink: [] };
-  }
-
-  const rowColConflicts = getRowColConflicts(game, cell.row, cell.col, number);
-  if (rowColConflicts.length > 0) {
-    return { message: "같은 가로줄이나 세로줄에 같은 숫자가 있습니다.", blink: rowColConflicts };
-  }
-
-  if (hasConflict(game, cell.row, cell.col, number)) {
-    return { message: "같은 행, 열, 3x3 블록에 같은 숫자를 둘 수 없습니다.", blink: [] };
-  }
-
-  cell.value = number;
-  cell.notes = [];
-
-  if (number === game.solution[cell.row][cell.col]) {
-    clearNotesFromRowCol(game, cell.row, cell.col, number);
-  }
-
-  return {
-    message: number === game.solution[cell.row][cell.col] ? "숫자를 입력했습니다." : "틀린 숫자입니다. 빨간색으로 표시됩니다.",
-    blink: []
-  };
-}
-
-function toggleNote(game, cell, number) {
-  const rowColConflicts = getRowColConflicts(game, cell.row, cell.col, number);
-  if (rowColConflicts.length > 0) {
-    return { message: "노트 모드에서도 같은 가로줄이나 세로줄 숫자는 표시할 수 없습니다.", blink: rowColConflicts };
-  }
-
-  if (cell.value === number) {
-    cell.value = 0;
-    return { message: "같은 숫자를 다시 눌러 값을 지웠습니다.", blink: [] };
-  }
-
-  if (cell.value !== 0) {
-    cell.value = 0;
-  }
-
-  if (cell.notes.includes(number)) {
-    cell.notes = cell.notes.filter((item) => item !== number);
-    return { message: "노트를 지웠습니다.", blink: [] };
-  }
-
-  cell.notes = [...cell.notes, number].sort((a, b) => a - b);
-  return { message: "노트를 표시했습니다.", blink: [] };
-}
-
-function finishIfComplete(game) {
-  if (!game.completed && isComplete(game)) {
-    game.completed = true;
-    setStatus("완성했습니다! 스도쿠를 모두 맞췄습니다.");
-    renderGame();
-    showCompletionOverlay();
-    return true;
-  }
-  return false;
-}
-
-function handleNumberInput(number) {
-  const game = state.game;
-  if (!game.selected) {
-    setStatus("먼저 칸을 선택하세요.");
-    renderGame();
-    return;
-  }
-
-  const cell = getSelectedCell(game);
-  if (cell.fixed) {
-    const blink = getRowColConflicts(game, cell.row, cell.col, cell.value);
-    triggerConflictBlink(game, blink);
-    setStatus("기본 숫자는 변경할 수 없습니다.");
-    renderGame();
-    return;
-  }
-
-  saveHistory(game);
-  const result = game.noteMode ? toggleNote(game, cell, number) : toggleValue(game, cell, number);
-
-  if (result.message.includes("둘 수 없습니다") || result.message.includes("표시할 수 없습니다") || result.message.includes("같은 가로줄이나 세로줄")) {
-    game.history.pop();
-  }
-
-  updateHighlightFromSelection(game);
-  triggerConflictBlink(game, result.blink);
-
-  if (!finishIfComplete(game)) {
-    setStatus(result.message);
-    renderGame();
-  }
-}
-
-function eraseSelectedCell() {
-  const game = state.game;
-  if (!game.selected) {
-    setStatus("먼저 칸을 선택하세요.");
-    renderGame();
-    return;
-  }
-
-  const cell = getSelectedCell(game);
-  if (cell.fixed) {
-    setStatus("기본 숫자는 지울 수 없습니다.");
-    renderGame();
-    return;
-  }
-
-  if (cell.value === 0 && cell.notes.length === 0) {
-    setStatus("이미 비어 있는 칸입니다.");
-    renderGame();
-    return;
-  }
-
-  saveHistory(game);
-  cell.value = 0;
-  cell.notes = [];
-  game.blinkKey = null;
-  updateHighlightFromSelection(game);
-  setStatus("선택한 칸을 지웠습니다.");
-  renderGame();
-}
-
-function toggleNoteMode() {
-  const game = state.game;
-  game.noteMode = !game.noteMode;
-  setStatus(game.noteMode ? "노트 모드가 켜졌습니다." : "노트 모드가 꺼졌습니다.");
-  renderGame();
-}
-
-function useHint() {
-  const game = state.game;
-  if (!game.selected) {
-    setStatus("먼저 칸을 선택하세요.");
-    renderGame();
-    return;
-  }
-  if (game.hintsRemaining === 0) {
-    setStatus("힌트는 모두 사용했습니다.");
-    renderGame();
-    return;
-  }
-
-  const cell = getSelectedCell(game);
-  if (cell.fixed) {
-    setStatus("기본 숫자가 있는 칸입니다.");
-    renderGame();
-    return;
-  }
-
-  const correctValue = game.solution[cell.row][cell.col];
-  if (cell.value === correctValue) {
-    setStatus("이미 올바른 숫자가 들어 있습니다.");
-    renderGame();
-    return;
-  }
-
-  saveHistory(game);
-  cell.value = correctValue;
-  cell.notes = [];
-  clearNotesFromRowCol(game, cell.row, cell.col, correctValue);
-  game.hintsRemaining -= 1;
-  game.blinkKey = null;
-  updateHighlightFromSelection(game);
-
-  if (!finishIfComplete(game)) {
-    setStatus(`힌트를 사용했습니다. 남은 힌트: ${game.hintsRemaining}`);
-    renderGame();
-  }
-}
-
-function undo() {
-  const game = state.game;
-  const snapshot = game.history.pop();
-  if (!snapshot) {
-    setStatus("되돌릴 동작이 없습니다.");
-    renderGame();
-    return;
-  }
-
-  restoreSnapshot(game, snapshot);
-  closeCompletionOverlay();
-  setStatus("이전 상태로 되돌렸습니다.");
-  renderGame();
-}
-
-function goHome() {
-  closeCompletionOverlay();
-  openScreen("home");
-}
-
-document.getElementById("dailyEntryBtn").addEventListener("click", () => {
-  state.dailySelectedMonth = TODAY.month;
-  state.dailySelectedDay = TODAY.day;
-  renderDailyCalendar();
-  closeCompletionOverlay();
-  openScreen("daily");
-});
-
-document.getElementById("startEntryBtn").addEventListener("click", () => {
-  closeCompletionOverlay();
-  openScreen("difficulty");
-});
-
-document.getElementById("dailyBackBtn").addEventListener("click", goHome);
-document.getElementById("difficultyBackBtn").addEventListener("click", goHome);
-document.getElementById("homeBtn").addEventListener("click", goHome);
-document.getElementById("completeHomeBtn").addEventListener("click", goHome);
-document.getElementById("dailyStartBtn").addEventListener("click", startDailyChallenge);
-
-document.querySelectorAll(".difficulty-btn").forEach((button) => {
-  button.addEventListener("click", () => {
-    startClassicMode(button.dataset.difficulty);
-  });
-});
-
-undoBtn.addEventListener("click", undo);
-eraseBtn.addEventListener("click", eraseSelectedCell);
-noteBtn.addEventListener("click", toggleNoteMode);
-hintBtn.addEventListener("click", useHint);
-
+﻿const TODAY={year:2026,month:3,day:11};
+const START_MONTH=1;
+const LANGUAGES=["ko","en","ja","zh"];
+const TRANSLATIONS={ko:{homeEyebrow:"Minimal Sudoku",homeTitle:"Sudoku",homeCopy:"데일리 도전, 일반 모드, 실시간 언어 전환까지 한 화면에서 바로 즐길 수 있는 스도쿠입니다.",dailyEntry:"데일리 도전",startEntry:"START",back:"뒤로",dailyEyebrow:"Daily Challenge",dailyCopy:"2026년 1월부터 오늘인 3월 11일까지 선택할 수 있습니다. 미래 날짜는 잠겨 있습니다.",dailyStart:"선택한 날짜로 시작",difficultyEyebrow:"Classic Mode",difficultyTitle:"난이도 선택",easyLabel:"하",easyCopy:"가볍게 시작하는 퍼즐",mediumLabel:"중",mediumCopy:"생각할 거리가 있는 퍼즐",hardLabel:"상",hardCopy:"집중해서 푸는 퍼즐",undo:"실행 취소",erase:"지우개",note:"노트",hint:"힌트",completeTitle:"완료!",completeCopy:"모든 숫자를 채워 퍼즐을 해결했습니다.",completeHome:"처음으로",settingsHomeTitle:"설정",settingsGameTitle:"게임 설정",settingsHomeCopy:"언어를 바꾸면 첫 화면 문구가 즉시 반영됩니다.",settingsGameCopy:"언어를 바꾸면 게임 화면과 상태 메시지가 즉시 반영됩니다.",settingsLanguage:"언어",settingsHomeAction:"처음으로",hintModalTitle:"힌트를 사용하시겠습니까?",hintModalCopy:"'예'를 눌러야만 힌트가 사용됩니다.",yes:"예",no:"아니오",weekday0:"일",weekday1:"월",weekday2:"화",weekday3:"수",weekday4:"목",weekday5:"금",weekday6:"토",monthTab:"{month}월",dailyMonthTitle:"{year}년 {month}월",dailySelectionToday:"{month}월 {day}일 선택됨 · 오늘의 데일리 퍼즐이 열립니다.",dailySelectionRandom:"{month}월 {day}일 선택됨 · 선택한 날짜 기준 랜덤 퍼즐이 열립니다.",badgeDaily:"데일리 도전",badgeRandom:"랜덤 도전",badgeEasy:"일반 모드 · 하",badgeMedium:"일반 모드 · 중",badgeHard:"일반 모드 · 상",gameTitleDaily:"{month}월 {day}일 퍼즐",gameTitleDifficulty:"난이도 {label}",difficultyWordEasy:"하",difficultyWordMedium:"중",difficultyWordHard:"상",hintRemaining:"힌트 {count}회 남음",statusSelectCell:"칸을 선택하세요.",statusFixedLocked:"기본으로 주어진 숫자는 수정할 수 없습니다.",statusFixedChangeBlocked:"기본 숫자는 변경할 수 없습니다.",statusNumberHighlight:"같은 숫자들이 함께 강조됩니다.",statusNoteOn:"노트 모드입니다.",statusNoteAlreadyOn:"노트 모드가 켜져 있습니다.",statusNumberEntered:"숫자를 입력했습니다.",statusNumberWrong:"틀린 숫자입니다. 빨간색으로 표시됩니다.",statusNumberCleared:"숫자를 지웠습니다.",statusConflictRowCol:"같은 가로줄이나 세로줄에 같은 숫자가 있습니다.",statusConflictAll:"같은 행, 열, 3x3 블록에 같은 숫자를 둘 수 없습니다.",statusNoteBlocked:"노트 모드에서도 같은 가로줄이나 세로줄 숫자는 표시할 수 없습니다.",statusNoteCleared:"노트를 지웠습니다.",statusNoteShown:"노트를 표시했습니다.",statusSameValueCleared:"같은 숫자를 다시 눌러 값을 지웠습니다.",statusNeedSelection:"먼저 칸을 선택하세요.",statusCellAlreadyEmpty:"이미 비어 있는 칸입니다.",statusCellErased:"선택한 칸을 지웠습니다.",statusNoteModeEnabled:"노트 모드가 켜졌습니다.",statusNoteModeDisabled:"노트 모드가 꺼졌습니다.",statusNoUndo:"되돌릴 동작이 없습니다.",statusUndoDone:"이전 상태로 되돌렸습니다.",statusHintNoMore:"힌트는 모두 사용했습니다.",statusHintFixed:"기본 숫자가 있는 칸입니다.",statusHintAlreadyCorrect:"이미 올바른 숫자가 들어 있습니다.",statusHintUsed:"힌트를 사용했습니다. 남은 힌트: {count}",statusComplete:"완성했습니다! 스도쿠를 모두 맞췄습니다."},en:{homeEyebrow:"Minimal Sudoku",homeTitle:"Sudoku",homeCopy:"Play daily challenges, classic mode, and switch languages instantly from one polished screen.",dailyEntry:"Daily Challenge",startEntry:"START",back:"Back",dailyEyebrow:"Daily Challenge",dailyCopy:"You can pick any date from January 2026 to today, March 11. Future dates stay locked.",dailyStart:"Start Selected Date",difficultyEyebrow:"Classic Mode",difficultyTitle:"Choose Difficulty",easyLabel:"Easy",easyCopy:"A lighter puzzle to warm up",mediumLabel:"Medium",mediumCopy:"A balanced puzzle with some bite",hardLabel:"Hard",hardCopy:"A tougher puzzle for focus",undo:"Undo",erase:"Erase",note:"Notes",hint:"Hint",completeTitle:"Complete!",completeCopy:"You filled every number and solved the puzzle.",completeHome:"Home",settingsHomeTitle:"Settings",settingsGameTitle:"Game Settings",settingsHomeCopy:"Changing the language updates the home screen immediately.",settingsGameCopy:"Changing the language updates the game screen and status messages instantly.",settingsLanguage:"Language",settingsHomeAction:"Go Home",hintModalTitle:"Use a hint?",hintModalCopy:"A hint is only consumed when you press 'Yes'.",yes:"Yes",no:"No",weekday0:"Sun",weekday1:"Mon",weekday2:"Tue",weekday3:"Wed",weekday4:"Thu",weekday5:"Fri",weekday6:"Sat",monthTab:"{month}",dailyMonthTitle:"{monthName} {year}",dailySelectionToday:"{monthName} {day} selected · Today's daily puzzle will open.",dailySelectionRandom:"{monthName} {day} selected · A random puzzle for that date will open.",badgeDaily:"Daily Challenge",badgeRandom:"Random Challenge",badgeEasy:"Classic · Easy",badgeMedium:"Classic · Medium",badgeHard:"Classic · Hard",gameTitleDaily:"{monthName} {day} Puzzle",gameTitleDifficulty:"{label} Difficulty",difficultyWordEasy:"Easy",difficultyWordMedium:"Medium",difficultyWordHard:"Hard",hintRemaining:"{count} hints left",statusSelectCell:"Select a cell.",statusFixedLocked:"Given numbers cannot be edited.",statusFixedChangeBlocked:"Given numbers cannot be changed.",statusNumberHighlight:"Matching numbers are highlighted together.",statusNoteOn:"Note mode is on.",statusNoteAlreadyOn:"Note mode is active.",statusNumberEntered:"Number entered.",statusNumberWrong:"That number is incorrect. It is shown in red.",statusNumberCleared:"Number cleared.",statusConflictRowCol:"The same number already exists in this row or column.",statusConflictAll:"The same number cannot exist in the row, column, or 3x3 block.",statusNoteBlocked:"In note mode, the same row or column number cannot be added.",statusNoteCleared:"Note cleared.",statusNoteShown:"Note added.",statusSameValueCleared:"Pressed the same number again, so it was cleared.",statusNeedSelection:"Select a cell first.",statusCellAlreadyEmpty:"This cell is already empty.",statusCellErased:"Selected cell cleared.",statusNoteModeEnabled:"Note mode enabled.",statusNoteModeDisabled:"Note mode disabled.",statusNoUndo:"There is nothing to undo.",statusUndoDone:"Returned to the previous state.",statusHintNoMore:"No hints remain.",statusHintFixed:"This cell already contains a given number.",statusHintAlreadyCorrect:"This cell is already correct.",statusHintUsed:"Hint used. Remaining hints: {count}",statusComplete:"Completed! You solved the whole Sudoku."},ja:{homeEyebrow:"Minimal Sudoku",homeTitle:"Sudoku",homeCopy:"デイリーチャレンジ、通常モード、言語切り替えをひとつの画面で楽しめる数独です。",dailyEntry:"デイリーチャレンジ",startEntry:"START",back:"戻る",dailyEyebrow:"Daily Challenge",dailyCopy:"2026年1月から本日3月11日まで選択できます。未来の日付はロックされています。",dailyStart:"この日付で開始",difficultyEyebrow:"Classic Mode",difficultyTitle:"難易度を選択",easyLabel:"初級",easyCopy:"軽く始められるパズル",mediumLabel:"中級",mediumCopy:"ほどよく考えるパズル",hardLabel:"上級",hardCopy:"集中して解くパズル",undo:"元に戻す",erase:"消しゴム",note:"メモ",hint:"ヒント",completeTitle:"クリア!",completeCopy:"すべての数字を埋めてパズルを解きました。",completeHome:"ホームへ",settingsHomeTitle:"設定",settingsGameTitle:"ゲーム設定",settingsHomeCopy:"言語を変えるとホーム画面の文言がすぐに切り替わります。",settingsGameCopy:"言語を変えるとゲーム画面と状態メッセージがすぐに切り替わります。",settingsLanguage:"言語",settingsHomeAction:"ホームへ",hintModalTitle:"ヒントを使いますか?",hintModalCopy:"「はい」を押したときだけヒントが消費されます。",yes:"はい",no:"いいえ",weekday0:"日",weekday1:"月",weekday2:"火",weekday3:"水",weekday4:"木",weekday5:"金",weekday6:"土",monthTab:"{month}月",dailyMonthTitle:"{year}年{month}月",dailySelectionToday:"{month}月{day}日を選択中 · 今日のデイリーパズルを開きます。",dailySelectionRandom:"{month}月{day}日を選択中 · その日付のランダムパズルを開きます。",badgeDaily:"デイリーチャレンジ",badgeRandom:"ランダムチャレンジ",badgeEasy:"通常モード · 初級",badgeMedium:"通常モード · 中級",badgeHard:"通常モード · 上級",gameTitleDaily:"{month}月{day}日のパズル",gameTitleDifficulty:"難易度 {label}",difficultyWordEasy:"初級",difficultyWordMedium:"中級",difficultyWordHard:"上級",hintRemaining:"ヒント残り {count}",statusSelectCell:"マスを選択してください。",statusFixedLocked:"最初からある数字は編集できません。",statusFixedChangeBlocked:"最初からある数字は変更できません。",statusNumberHighlight:"同じ数字が一緒に強調表示されます。",statusNoteOn:"メモモードです。",statusNoteAlreadyOn:"メモモードが有効です。",statusNumberEntered:"数字を入力しました。",statusNumberWrong:"その数字は不正解です。赤で表示されます。",statusNumberCleared:"数字を消しました。",statusConflictRowCol:"同じ数字がこの行または列にあります。",statusConflictAll:"同じ数字を行、列、3x3ブロックに置くことはできません。",statusNoteBlocked:"メモモードでも同じ行や列の数字は追加できません。",statusNoteCleared:"メモを消しました。",statusNoteShown:"メモを追加しました。",statusSameValueCleared:"同じ数字をもう一度押したので消しました。",statusNeedSelection:"先にマスを選択してください。",statusCellAlreadyEmpty:"このマスはすでに空です。",statusCellErased:"選択したマスを消しました。",statusNoteModeEnabled:"メモモードをオンにしました。",statusNoteModeDisabled:"メモモードをオフにしました。",statusNoUndo:"戻せる操作がありません。",statusUndoDone:"ひとつ前の状態に戻しました。",statusHintNoMore:"ヒントはもうありません。",statusHintFixed:"このマスには最初の数字があります。",statusHintAlreadyCorrect:"このマスはすでに正しい数字です。",statusHintUsed:"ヒントを使いました。残りヒント: {count}",statusComplete:"クリアしました! 数独をすべて解きました。"},zh:{homeEyebrow:"Minimal Sudoku",homeTitle:"Sudoku",homeCopy:"在同一个界面中体验每日挑战、普通模式和实时语言切换的数独。",dailyEntry:"每日挑战",startEntry:"START",back:"返回",dailyEyebrow:"Daily Challenge",dailyCopy:"可以选择 2026 年 1 月到今天 3 月 11 日之间的日期，未来日期已锁定。",dailyStart:"按所选日期开始",difficultyEyebrow:"Classic Mode",difficultyTitle:"选择难度",easyLabel:"简单",easyCopy:"轻松开始的题目",mediumLabel:"中等",mediumCopy:"有一定思考量的题目",hardLabel:"困难",hardCopy:"需要专注挑战的题目",undo:"撤销",erase:"橡皮擦",note:"笔记",hint:"提示",completeTitle:"完成!",completeCopy:"你已经填满所有数字并完成了这道题。",completeHome:"回到首页",settingsHomeTitle:"设置",settingsGameTitle:"游戏设置",settingsHomeCopy:"切换语言后，首页文案会立刻更新。",settingsGameCopy:"切换语言后，游戏界面和状态提示会立刻更新。",settingsLanguage:"语言",settingsHomeAction:"回到首页",hintModalTitle:"要使用提示吗?",hintModalCopy:"只有点击“是”后才会真正消耗提示。",yes:"是",no:"否",weekday0:"日",weekday1:"一",weekday2:"二",weekday3:"三",weekday4:"四",weekday5:"五",weekday6:"六",monthTab:"{month}月",dailyMonthTitle:"{year}年{month}月",dailySelectionToday:"已选择 {month} 月 {day} 日 · 将打开今天的每日题目。",dailySelectionRandom:"已选择 {month} 月 {day} 日 · 将打开该日期的随机题目。",badgeDaily:"每日挑战",badgeRandom:"随机挑战",badgeEasy:"普通模式 · 简单",badgeMedium:"普通模式 · 中等",badgeHard:"普通模式 · 困难",gameTitleDaily:"{month} 月 {day} 日题目",gameTitleDifficulty:"{label} 难度",difficultyWordEasy:"简单",difficultyWordMedium:"中等",difficultyWordHard:"困难",hintRemaining:"剩余提示 {count} 次",statusSelectCell:"请先选择一个格子。",statusFixedLocked:"题目原有数字不能修改。",statusFixedChangeBlocked:"题目原有数字不能更改。",statusNumberHighlight:"相同数字会一起高亮显示。",statusNoteOn:"当前为笔记模式。",statusNoteAlreadyOn:"笔记模式已开启。",statusNumberEntered:"已输入数字。",statusNumberWrong:"这个数字不正确，会以红色显示。",statusNumberCleared:"已清除数字。",statusConflictRowCol:"这一行或这一列已经有相同数字。",statusConflictAll:"相同行、列或 3x3 宫格中不能出现相同数字。",statusNoteBlocked:"笔记模式下也不能添加同一行或列中已有的数字。",statusNoteCleared:"已清除笔记。",statusNoteShown:"已添加笔记。",statusSameValueCleared:"再次点击相同数字，已将其清除。",statusNeedSelection:"请先选择一个格子。",statusCellAlreadyEmpty:"这个格子已经是空的。",statusCellErased:"已清除所选格子。",statusNoteModeEnabled:"已开启笔记模式。",statusNoteModeDisabled:"已关闭笔记模式。",statusNoUndo:"没有可以撤销的操作。",statusUndoDone:"已恢复到上一步。",statusHintNoMore:"提示已经用完了。",statusHintFixed:"这个格子已经是题目原有数字。",statusHintAlreadyCorrect:"这个格子已经是正确数字。",statusHintUsed:"已使用提示。剩余提示: {count}",statusComplete:"完成了! 你已经解开整道数独。"}};
+const MONTH_NAMES={en:["January","February","March","April","May","June","July","August","September","October","November","December"]};
+const BASE_SOLUTION=[[5,3,4,6,7,8,9,1,2],[6,7,2,1,9,5,3,4,8],[1,9,8,3,4,2,5,6,7],[8,5,9,7,6,1,4,2,3],[4,2,6,8,5,3,7,9,1],[7,1,3,9,2,4,8,5,6],[9,6,1,5,3,7,2,8,4],[2,8,7,4,1,9,6,3,5],[3,4,5,2,8,6,1,7,9]];
+const DIFFICULTY_CONFIG={easy:{removals:40},medium:{removals:48},hard:{removals:54},daily:{removals:52}};
+const PREVIEW_BOARD=[[5,0,0,2,7,0,1,0,9],[0,7,0,0,0,1,0,2,0],[1,0,4,0,0,0,6,0,0],[0,0,7,0,4,0,0,9,0],[4,0,0,9,0,3,0,0,2],[0,9,0,0,6,0,5,0,0],[0,0,1,0,0,0,7,0,4],[0,4,0,1,0,0,0,5,0],[7,0,8,0,5,4,0,0,6]];
+const screens={home:document.getElementById("homeScreen"),daily:document.getElementById("dailyScreen"),difficulty:document.getElementById("difficultyScreen"),game:document.getElementById("gameScreen")};
+const boardElement=document.getElementById("board"),statusElement=document.getElementById("status"),hintMetaElement=document.getElementById("hintMeta"),numberPadElement=document.getElementById("numberPad"),hintCountElement=document.getElementById("hintCount"),hintBtnLabelElement=document.getElementById("hintBtnLabel"),gameBadgeElement=document.getElementById("gameBadge"),gameTitleElement=document.getElementById("gameTitle"),dailyTitleElement=document.getElementById("dailyTitle"),monthTabsElement=document.getElementById("monthTabs"),weekdayRowElement=document.getElementById("weekdayRow"),calendarGridElement=document.getElementById("calendarGrid"),dailySelectionTextElement=document.getElementById("dailySelectionText"),completeOverlayElement=document.getElementById("completeOverlay"),settingsOverlayElement=document.getElementById("settingsOverlay"),hintOverlayElement=document.getElementById("hintOverlay"),heroPreviewBoardElement=document.getElementById("heroPreviewBoard");
+const state={language:"ko",currentScreen:"home",settingsContext:"home",dailySelectedMonth:TODAY.month,dailySelectedDay:TODAY.day,game:null};
+const t=(key,params={})=>(TRANSLATIONS[state.language][key]||TRANSLATIONS.ko[key]||key).replace(/\{(\w+)\}/g,(_,n)=>String(params[n]??""));
+const monthName=(month)=>MONTH_NAMES[state.language]?.[month-1]||String(month);
+const daysInMonth=(year,month)=>new Date(year,month,0).getDate();
+function mulberry32(seed){let current=seed>>>0;return function(){current+=0x6d2b79f5;let result=current;result=Math.imul(result^(result>>>15),result|1);result^=result+Math.imul(result^(result>>>7),result|61);return((result^(result>>>14))>>>0)/4294967296;};}
+function shuffled(array,random){const copy=[...array];for(let i=copy.length-1;i>0;i-=1){const tIdx=Math.floor(random()*(i+1));[copy[i],copy[tIdx]]=[copy[tIdx],copy[i]];}return copy;}
+const cloneGrid=(grid)=>grid.map((row)=>[...row]);
+const transpose=(grid)=>grid[0].map((_,c)=>grid.map((row)=>row[c]));
+function swapRowsWithinBands(grid,random){const next=[];for(let band=0;band<3;band+=1){const rows=[0,1,2].map((offset)=>grid[band*3+offset]);next.push(...shuffled(rows,random));}return next;}
+function swapBands(grid,random){const bands=[0,1,2].map((band)=>grid.slice(band*3,band*3+3));return shuffled(bands,random).flat();}
+function remapDigits(grid,random){const digits=shuffled([1,2,3,4,5,6,7,8,9],random);const map=new Map(digits.map((digit,index)=>[index+1,digit]));return grid.map((row)=>row.map((value)=>map.get(value)));}
+function generateSolution(seed){const random=mulberry32(seed);let grid=cloneGrid(BASE_SOLUTION);grid=swapRowsWithinBands(grid,random);grid=swapBands(grid,random);grid=transpose(grid);grid=swapRowsWithinBands(grid,random);grid=swapBands(grid,random);grid=transpose(grid);return remapDigits(grid,random);}
+function generatePuzzle(solution,removals,seed){const random=mulberry32(seed^0x9e3779b9);const puzzle=cloneGrid(solution);const positions=[];const rowClues=new Array(9).fill(9);const colClues=new Array(9).fill(9);const blockClues=new Array(9).fill(9);let removed=0;for(let row=0;row<9;row+=1){for(let col=0;col<9;col+=1){positions.push({row,col});}}shuffled(positions,random).forEach(({row,col})=>{if(removed>=removals){return;}const block=Math.floor(row/3)*3+Math.floor(col/3);if(rowClues[row]<=3||colClues[col]<=3||blockClues[block]<=3){return;}puzzle[row][col]=0;rowClues[row]-=1;colClues[col]-=1;blockClues[block]-=1;removed+=1;});return puzzle;}
+const createCells=(puzzle)=>puzzle.map((row,rowIndex)=>row.map((value,colIndex)=>({row:rowIndex,col:colIndex,value,fixed:value!==0,notes:[]})));
+const cloneCells=(cells)=>cells.map((row)=>row.map((cell)=>({...cell,notes:[...cell.notes]})));
+function buildSession(options){const solution=generateSolution(options.seed);const puzzle=generatePuzzle(solution,options.removals,options.seed+17);return{mode:options.mode,dailyMonth:options.dailyMonth||null,dailyDay:options.dailyDay||null,difficulty:options.difficulty||null,badgeKey:options.badgeKey,titleMode:options.titleMode,cells:createCells(puzzle),solution,selected:null,noteMode:false,hintsRemaining:3,history:[],highlightNumber:null,blinkKey:null,completed:false,statusKey:"statusSelectCell",statusParams:{}};}
+const gameSnapshot=(game)=>({cells:cloneCells(game.cells),selected:game.selected?{...game.selected}:null,noteMode:game.noteMode,hintsRemaining:game.hintsRemaining,highlightNumber:game.highlightNumber,blinkKey:game.blinkKey,completed:game.completed,statusKey:game.statusKey,statusParams:{...game.statusParams}});
+function restoreSnapshot(game,snapshot){game.cells=cloneCells(snapshot.cells);game.selected=snapshot.selected?{...snapshot.selected}:null;game.noteMode=snapshot.noteMode;game.hintsRemaining=snapshot.hintsRemaining;game.highlightNumber=snapshot.highlightNumber;game.blinkKey=snapshot.blinkKey||null;game.completed=snapshot.completed;game.statusKey=snapshot.statusKey;game.statusParams={...snapshot.statusParams};}
+const saveHistory=(game)=>game.history.push(gameSnapshot(game));
+const getSelectedCell=(game)=>(!game||!game.selected)?null:game.cells[game.selected.row][game.selected.col];
+function setStatus(key,params={}){if(state.game){state.game.statusKey=key;state.game.statusParams=params;}statusElement.textContent=t(key,params);}
+const getDifficultyWord=(difficulty)=>difficulty==="easy"?t("difficultyWordEasy"):difficulty==="medium"?t("difficultyWordMedium"):t("difficultyWordHard");
+const getGameBadgeText=(game)=>t(game.badgeKey);
+function getGameTitleText(game){return game.titleMode==="daily"?t("gameTitleDaily",{month:game.dailyMonth,day:game.dailyDay,monthName:monthName(game.dailyMonth)}):t("gameTitleDifficulty",{label:getDifficultyWord(game.difficulty)});}
+function openScreen(screenName){state.currentScreen=screenName;Object.entries(screens).forEach(([name,element])=>element.classList.toggle("hidden",name!==screenName));}
+function openSettings(context){state.settingsContext=context;renderSettingsModal();settingsOverlayElement.classList.remove("hidden");settingsOverlayElement.setAttribute("aria-hidden","false");}
+function closeSettings(){settingsOverlayElement.classList.add("hidden");settingsOverlayElement.setAttribute("aria-hidden","true");}
+function openHintConfirm(){hintOverlayElement.classList.remove("hidden");hintOverlayElement.setAttribute("aria-hidden","false");renderHintModal();}
+function closeHintConfirm(){hintOverlayElement.classList.add("hidden");hintOverlayElement.setAttribute("aria-hidden","true");}
+function closeCompletionOverlay(){completeOverlayElement.classList.add("hidden");completeOverlayElement.setAttribute("aria-hidden","true");}
+function showCompletionOverlay(){completeOverlayElement.classList.remove("hidden");completeOverlayElement.setAttribute("aria-hidden","false");renderCompleteModal();}
+function renderHeroPreview(){heroPreviewBoardElement.innerHTML="";PREVIEW_BOARD.forEach((row,rowIndex)=>{row.forEach((value,colIndex)=>{const cell=document.createElement("div");cell.className="preview-cell";if((colIndex+1)%3===0&&colIndex!==8){cell.classList.add("block-right");}if((rowIndex+1)%3===0&&rowIndex!==8){cell.classList.add("block-bottom");}if(value===0){cell.classList.add("soft");cell.textContent=rowIndex%2===0?".":"";}else{cell.textContent=String(value);}heroPreviewBoardElement.appendChild(cell);});});}
+function renderWeekdays(){weekdayRowElement.innerHTML="";for(let index=0;index<7;index+=1){const span=document.createElement("span");span.textContent=t(`weekday${index}`);weekdayRowElement.appendChild(span);}}
+function renderHomeScreen(){document.documentElement.lang=state.language;document.getElementById("homeEyebrow").textContent=t("homeEyebrow");document.getElementById("homeTitle").textContent=t("homeTitle");document.getElementById("homeCopy").textContent=t("homeCopy");document.getElementById("dailyEntryBtn").textContent=t("dailyEntry");document.getElementById("startEntryBtn").textContent=t("startEntry");}
+function isFutureDate(month,day){if(month>TODAY.month){return true;}if(month<TODAY.month){return false;}return day>TODAY.day;}
+function normalizeSelectedDate(){if(state.dailySelectedMonth>TODAY.month){state.dailySelectedMonth=TODAY.month;state.dailySelectedDay=TODAY.day;}const maxDay=state.dailySelectedMonth===TODAY.month?TODAY.day:daysInMonth(TODAY.year,state.dailySelectedMonth);if(state.dailySelectedDay>maxDay){state.dailySelectedDay=maxDay;}}
+function renderMonthTabs(){monthTabsElement.innerHTML="";for(let month=START_MONTH;month<=TODAY.month;month+=1){const button=document.createElement("button");button.type="button";button.className="month-tab";button.textContent=t("monthTab",{month});if(month===state.dailySelectedMonth){button.classList.add("active");}button.addEventListener("click",()=>{state.dailySelectedMonth=month;normalizeSelectedDate();renderDailyScreen();});monthTabsElement.appendChild(button);}}
+function renderCalendar(){calendarGridElement.innerHTML="";const firstWeekday=new Date(TODAY.year,state.dailySelectedMonth-1,1).getDay();const monthDays=daysInMonth(TODAY.year,state.dailySelectedMonth);for(let i=0;i<firstWeekday;i+=1){const empty=document.createElement("div");empty.className="calendar-empty";calendarGridElement.appendChild(empty);}for(let day=1;day<=monthDays;day+=1){const button=document.createElement("button");button.type="button";button.textContent=String(day);const isToday=state.dailySelectedMonth===TODAY.month&&day===TODAY.day;const isSelected=day===state.dailySelectedDay;const disabled=isFutureDate(state.dailySelectedMonth,day);if(isToday){button.classList.add("today");}if(isSelected){button.classList.add("selected");}if(disabled){button.disabled=true;}else{button.addEventListener("click",()=>{state.dailySelectedDay=day;renderDailyScreen();});}calendarGridElement.appendChild(button);}}
+function renderDailyScreen(){document.getElementById("dailyBackBtn").textContent=t("back");document.getElementById("dailyEyebrow").textContent=t("dailyEyebrow");dailyTitleElement.textContent=t("dailyMonthTitle",{year:TODAY.year,month:state.dailySelectedMonth,monthName:monthName(state.dailySelectedMonth)});document.getElementById("dailyCopy").textContent=t("dailyCopy");document.getElementById("dailyStartBtn").textContent=t("dailyStart");renderWeekdays();renderMonthTabs();renderCalendar();const key=state.dailySelectedMonth===TODAY.month&&state.dailySelectedDay===TODAY.day?"dailySelectionToday":"dailySelectionRandom";dailySelectionTextElement.textContent=t(key,{month:state.dailySelectedMonth,day:state.dailySelectedDay,monthName:monthName(state.dailySelectedMonth)});}
+function renderDifficultyScreen(){document.getElementById("difficultyBackBtn").textContent=t("back");document.getElementById("difficultyEyebrow").textContent=t("difficultyEyebrow");document.getElementById("difficultyTitle").textContent=t("difficultyTitle");document.getElementById("difficultyEasyLabel").textContent=t("easyLabel");document.getElementById("difficultyEasyCopy").textContent=t("easyCopy");document.getElementById("difficultyMediumLabel").textContent=t("mediumLabel");document.getElementById("difficultyMediumCopy").textContent=t("mediumCopy");document.getElementById("difficultyHardLabel").textContent=t("hardLabel");document.getElementById("difficultyHardCopy").textContent=t("hardCopy");}
+const isRelated=(row,col,selected)=>!!selected&&(selected.row===row||selected.col===col||(Math.floor(selected.row/3)===Math.floor(row/3)&&Math.floor(selected.col/3)===Math.floor(col/3)));
+function hasConflict(game,row,col,value){if(!value){return false;}for(let i=0;i<9;i+=1){if(i!==col&&game.cells[row][i].value===value){return true;}if(i!==row&&game.cells[i][col].value===value){return true;}}const startRow=Math.floor(row/3)*3;const startCol=Math.floor(col/3)*3;for(let r=startRow;r<startRow+3;r+=1){for(let c=startCol;c<startCol+3;c+=1){if(!(r===row&&c===col)&&game.cells[r][c].value===value){return true;}}}return false;}
+function getRowColConflicts(game,row,col,value){const conflicts=[];if(!value){return conflicts;}for(let i=0;i<9;i+=1){if(i!==col&&game.cells[row][i].value===value){conflicts.push({row,col:i});}if(i!==row&&game.cells[i][col].value===value){conflicts.push({row:i,col});}}return conflicts;}
+function triggerConflictBlink(game,conflicts){if(conflicts.length===0){return;}game.blinkKey=`${Date.now()}-${Math.random()}`;renderGame();setTimeout(()=>{if(!state.game||state.game!==game){return;}if(state.game.blinkKey===game.blinkKey){state.game.blinkKey=null;renderGame();}},900);}
+function isConflictBlinkCell(game,cell){if(!game.blinkKey||!game.selected){return false;}const selectedCell=getSelectedCell(game);if(!selectedCell||selectedCell.value===0){return false;}return getRowColConflicts(game,selectedCell.row,selectedCell.col,selectedCell.value).some((target)=>target.row===cell.row&&target.col===cell.col);}
+const isWrongCell=(game,cell)=>!cell.fixed&&cell.value!==0&&cell.value!==game.solution[cell.row][cell.col];
+const isComplete=(game)=>game.cells.every((row)=>row.every((cell)=>cell.value!==0&&cell.value===game.solution[cell.row][cell.col]));
+function updateHighlightFromSelection(game){const cell=getSelectedCell(game);game.highlightNumber=cell&&cell.value!==0?cell.value:null;}
+function clearNotesFromRowCol(game,row,col,number){for(let i=0;i<9;i+=1){if(i!==col){game.cells[row][i].notes=game.cells[row][i].notes.filter((note)=>note!==number);}if(i!==row){game.cells[i][col].notes=game.cells[i][col].notes.filter((note)=>note!==number);}}}
+function isNumberCompleteAcrossBlocks(game,number){for(let blockRow=0;blockRow<3;blockRow+=1){for(let blockCol=0;blockCol<3;blockCol+=1){let found=false;for(let row=blockRow*3;row<blockRow*3+3;row+=1){for(let col=blockCol*3;col<blockCol*3+3;col+=1){if(game.cells[row][col].value===number){found=true;}}}if(!found){return false;}}}return true;}
+function getPlacedCount(game,number){let count=0;game.cells.forEach((row)=>row.forEach((cell)=>{if(cell.value===number){count+=1;}}));return count;}
+function renderBoard(){const game=state.game;boardElement.innerHTML="";game.cells.forEach((row)=>{row.forEach((cell)=>{const button=document.createElement("button");button.type="button";button.className="cell";button.setAttribute("aria-label",`${cell.row+1},${cell.col+1}`);if((cell.col+1)%3===0&&cell.col!==8){button.classList.add("block-right");}if((cell.row+1)%3===0&&cell.row!==8){button.classList.add("block-bottom");}if(cell.fixed){button.classList.add("fixed");}if(game.selected&&game.selected.row===cell.row&&game.selected.col===cell.col){button.classList.add("selected");}else if(isRelated(cell.row,cell.col,game.selected)){button.classList.add("related");}if(game.highlightNumber&&cell.value===game.highlightNumber){button.classList.add("same-number");}if(isConflictBlinkCell(game,cell)){button.classList.add("conflict-blink");}if(isWrongCell(game,cell)){button.classList.add("wrong");}if(cell.value!==0){const value=document.createElement("span");value.className="cell-value";value.textContent=String(cell.value);button.appendChild(value);}else{const notesGrid=document.createElement("div");notesGrid.className="notes-grid";for(let number=1;number<=9;number+=1){const noteItem=document.createElement("div");noteItem.className="note-item";noteItem.textContent=cell.notes.includes(number)?String(number):"";notesGrid.appendChild(noteItem);}button.appendChild(notesGrid);}button.addEventListener("click",()=>selectCell(cell.row,cell.col));boardElement.appendChild(button);});});}
+function renderNumberPad(){const game=state.game;numberPadElement.innerHTML="";numberPadElement.classList.toggle("note-active",game.noteMode);for(let number=1;number<=9;number+=1){const button=document.createElement("button");const value=document.createElement("span");const count=document.createElement("span");button.type="button";button.className="number-pad-btn";value.className="number-pad-value";count.className="number-pad-count";value.textContent=String(number);count.textContent=String(getPlacedCount(game,number));button.disabled=isNumberCompleteAcrossBlocks(game,number);button.appendChild(value);button.appendChild(count);button.addEventListener("click",()=>handleNumberInput(number));numberPadElement.appendChild(button);}}
+function renderGameMeta(){const game=state.game;gameBadgeElement.textContent=getGameBadgeText(game);gameTitleElement.textContent=getGameTitleText(game);statusElement.textContent=t(game.statusKey,game.statusParams);hintMetaElement.textContent=t("hintRemaining",{count:game.hintsRemaining});hintBtnLabelElement.textContent=t("hint");hintCountElement.textContent=String(game.hintsRemaining);document.getElementById("undoBtn").textContent=t("undo");document.getElementById("eraseBtn").textContent=t("erase");document.getElementById("noteBtn").textContent=t("note");document.getElementById("noteBtn").classList.toggle("active",game.noteMode);document.getElementById("undoBtn").disabled=game.history.length===0;document.getElementById("hintBtn").disabled=game.hintsRemaining===0;}
+function renderGame(){if(!state.game){return;}renderGameMeta();renderBoard();renderNumberPad();}
+function renderCompleteModal(){document.getElementById("completeTitle").textContent=t("completeTitle");document.getElementById("completeCopy").textContent=t("completeCopy");document.getElementById("completeHomeBtn").textContent=t("completeHome");}
+function renderSettingsModal(){const isGame=state.settingsContext==="game";document.getElementById("settingsTitle").textContent=isGame?t("settingsGameTitle"):t("settingsHomeTitle");document.getElementById("settingsCopy").textContent=isGame?t("settingsGameCopy"):t("settingsHomeCopy");document.getElementById("settingsLanguageTitle").textContent=t("settingsLanguage");document.getElementById("settingsHomeBtn").textContent=t("settingsHomeAction");document.getElementById("settingsHomeWrap").classList.toggle("hidden",!isGame);document.querySelectorAll(".language-btn").forEach((button)=>button.classList.toggle("active",button.dataset.lang===state.language));}
+function renderHintModal(){document.getElementById("hintModalTitle").textContent=t("hintModalTitle");document.getElementById("hintModalCopy").textContent=t("hintModalCopy");document.getElementById("hintCancelBtn").textContent=t("no");document.getElementById("hintConfirmBtn").textContent=t("yes");}
+function renderAllStatic(){renderHomeScreen();renderDailyScreen();renderDifficultyScreen();renderCompleteModal();renderSettingsModal();renderHintModal();if(state.game){renderGame();}}
+function startGame(options){state.game=buildSession(options);closeCompletionOverlay();closeHintConfirm();openScreen("game");renderGame();}
+function startDailyChallenge(){const isToday=state.dailySelectedMonth===TODAY.month&&state.dailySelectedDay===TODAY.day;const dateSeed=Number(`${TODAY.year}${String(state.dailySelectedMonth).padStart(2,"0")}${String(state.dailySelectedDay).padStart(2,"0")}`);const seed=isToday?dateSeed:Math.floor(Math.random()*1000000)+dateSeed;startGame({mode:"daily",titleMode:"daily",dailyMonth:state.dailySelectedMonth,dailyDay:state.dailySelectedDay,badgeKey:isToday?"badgeDaily":"badgeRandom",seed,removals:DIFFICULTY_CONFIG.daily.removals});}
+function startClassicMode(difficulty){const seed=Math.floor(Math.random()*1000000)+Date.now();startGame({mode:difficulty,titleMode:"difficulty",difficulty,badgeKey:difficulty==="easy"?"badgeEasy":difficulty==="medium"?"badgeMedium":"badgeHard",seed,removals:DIFFICULTY_CONFIG[difficulty].removals});}
+function selectCell(row,col){const game=state.game;game.selected={row,col};game.blinkKey=null;updateHighlightFromSelection(game);const cell=game.cells[row][col];if(cell.fixed){setStatus("statusFixedLocked");}else if(cell.value!==0){setStatus(game.noteMode?"statusNoteAlreadyOn":"statusNumberHighlight");}else{setStatus(game.noteMode?"statusNoteOn":"statusSelectCell");}renderGame();}
+function toggleValue(game,cell,number){if(cell.value===number){cell.value=0;cell.notes=[];return{key:"statusNumberCleared",params:{},blink:[]};}const rowColConflicts=getRowColConflicts(game,cell.row,cell.col,number);if(rowColConflicts.length>0){return{key:"statusConflictRowCol",params:{},blink:rowColConflicts};}if(hasConflict(game,cell.row,cell.col,number)){return{key:"statusConflictAll",params:{},blink:[]};}cell.value=number;cell.notes=[];if(number===game.solution[cell.row][cell.col]){clearNotesFromRowCol(game,cell.row,cell.col,number);}return{key:number===game.solution[cell.row][cell.col]?"statusNumberEntered":"statusNumberWrong",params:{},blink:[]};}
+function toggleNote(game,cell,number){const rowColConflicts=getRowColConflicts(game,cell.row,cell.col,number);if(rowColConflicts.length>0){return{key:"statusNoteBlocked",params:{},blink:rowColConflicts};}if(cell.value===number){cell.value=0;return{key:"statusSameValueCleared",params:{},blink:[]};}if(cell.value!==0){cell.value=0;}if(cell.notes.includes(number)){cell.notes=cell.notes.filter((item)=>item!==number);return{key:"statusNoteCleared",params:{},blink:[]};}cell.notes=[...cell.notes,number].sort((a,b)=>a-b);return{key:"statusNoteShown",params:{},blink:[]};}
+function finishIfComplete(game){if(!game.completed&&isComplete(game)){game.completed=true;setStatus("statusComplete");renderGame();showCompletionOverlay();return true;}return false;}
+function handleNumberInput(number){const game=state.game;if(!game.selected){setStatus("statusNeedSelection");renderGame();return;}const cell=getSelectedCell(game);if(cell.fixed){triggerConflictBlink(game,getRowColConflicts(game,cell.row,cell.col,cell.value));setStatus("statusFixedChangeBlocked");renderGame();return;}saveHistory(game);const result=game.noteMode?toggleNote(game,cell,number):toggleValue(game,cell,number);if(["statusConflictAll","statusConflictRowCol","statusNoteBlocked"].includes(result.key)){game.history.pop();}updateHighlightFromSelection(game);triggerConflictBlink(game,result.blink);if(!finishIfComplete(game)){setStatus(result.key,result.params);renderGame();}}
+function eraseSelectedCell(){const game=state.game;if(!game.selected){setStatus("statusNeedSelection");renderGame();return;}const cell=getSelectedCell(game);if(cell.fixed){setStatus("statusFixedLocked");renderGame();return;}if(cell.value===0&&cell.notes.length===0){setStatus("statusCellAlreadyEmpty");renderGame();return;}saveHistory(game);cell.value=0;cell.notes=[];game.blinkKey=null;updateHighlightFromSelection(game);setStatus("statusCellErased");renderGame();}
+function toggleNoteMode(){const game=state.game;game.noteMode=!game.noteMode;setStatus(game.noteMode?"statusNoteModeEnabled":"statusNoteModeDisabled");renderGame();}
+function requestHint(){const game=state.game;if(!game.selected){setStatus("statusNeedSelection");renderGame();return;}if(game.hintsRemaining===0){setStatus("statusHintNoMore");renderGame();return;}openHintConfirm();}
+function useHintConfirmed(){closeHintConfirm();const game=state.game;if(!game||!game.selected){return;}const cell=getSelectedCell(game);if(cell.fixed){setStatus("statusHintFixed");renderGame();return;}const correctValue=game.solution[cell.row][cell.col];if(cell.value===correctValue){setStatus("statusHintAlreadyCorrect");renderGame();return;}saveHistory(game);cell.value=correctValue;cell.notes=[];clearNotesFromRowCol(game,cell.row,cell.col,correctValue);game.hintsRemaining-=1;game.blinkKey=null;updateHighlightFromSelection(game);if(!finishIfComplete(game)){setStatus("statusHintUsed",{count:game.hintsRemaining});renderGame();}}
+function undo(){const game=state.game;const snapshot=game.history.pop();if(!snapshot){setStatus("statusNoUndo");renderGame();return;}restoreSnapshot(game,snapshot);closeCompletionOverlay();setStatus("statusUndoDone");renderGame();}
+function goHome(){closeSettings();closeHintConfirm();closeCompletionOverlay();openScreen("home");}
+function changeLanguage(lang){state.language=lang;renderAllStatic();}
+document.getElementById("dailyEntryBtn").addEventListener("click",()=>{state.dailySelectedMonth=TODAY.month;state.dailySelectedDay=TODAY.day;renderDailyScreen();openScreen("daily");});
+document.getElementById("startEntryBtn").addEventListener("click",()=>openScreen("difficulty"));
+document.getElementById("dailyBackBtn").addEventListener("click",goHome);
+document.getElementById("difficultyBackBtn").addEventListener("click",goHome);
+document.getElementById("homeSettingsBtn").addEventListener("click",()=>openSettings("home"));
+document.getElementById("gameSettingsBtn").addEventListener("click",()=>openSettings("game"));
+document.getElementById("settingsCloseBtn").addEventListener("click",closeSettings);
+document.getElementById("settingsHomeBtn").addEventListener("click",goHome);
+document.getElementById("completeHomeBtn").addEventListener("click",goHome);
+document.getElementById("dailyStartBtn").addEventListener("click",startDailyChallenge);
+document.getElementById("hintBtn").addEventListener("click",requestHint);
+document.getElementById("hintCancelBtn").addEventListener("click",closeHintConfirm);
+document.getElementById("hintConfirmBtn").addEventListener("click",useHintConfirmed);
+document.getElementById("undoBtn").addEventListener("click",undo);
+document.getElementById("eraseBtn").addEventListener("click",eraseSelectedCell);
+document.getElementById("noteBtn").addEventListener("click",toggleNoteMode);
+LANGUAGES.forEach((lang)=>{document.querySelector(`.language-btn[data-lang="${lang}"]`).addEventListener("click",()=>changeLanguage(lang));});
+document.querySelectorAll(".difficulty-btn").forEach((button)=>button.addEventListener("click",()=>startClassicMode(button.dataset.difficulty)));
+renderHeroPreview();
 normalizeSelectedDate();
-renderDailyCalendar();
+renderAllStatic();
 openScreen("home");
 closeCompletionOverlay();
-
-
+closeSettings();
+closeHintConfirm();

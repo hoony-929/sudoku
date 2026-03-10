@@ -1,7 +1,7 @@
 ﻿:root {
   color-scheme: light;
-  --bg: linear-gradient(180deg, #eef2ff 0%, #f7f8fb 48%, #eef2f7 100%);
-  --panel: rgba(255, 255, 255, 0.9);
+  --bg: radial-gradient(circle at top, #eff6ff 0%, #f8fafc 38%, #edf2ff 100%);
+  --panel: rgba(255, 255, 255, 0.88);
   --panel-strong: #ffffff;
   --line: #cbd5e1;
   --line-strong: #475569;
@@ -12,7 +12,7 @@
   --navy-soft: #e7edff;
   --danger: #dc2626;
   --success: #16a34a;
-  --shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+  --shadow: 0 20px 50px rgba(15, 23, 42, 0.1);
 }
 
 * {
@@ -43,76 +43,39 @@ button {
 }
 
 .screen {
-  width: min(100%, 560px);
+  width: min(100%, 600px);
 }
 
 .hero-card,
 .panel-card,
 .game-panel,
-.complete-card {
+.complete-card,
+.modal-card {
   background: var(--panel);
-  border: 1px solid rgba(148, 163, 184, 0.24);
+  border: 1px solid rgba(148, 163, 184, 0.26);
   box-shadow: var(--shadow);
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(12px);
 }
 
 .hero-card,
 .panel-card,
-.complete-card {
+.complete-card,
+.modal-card {
   border-radius: 28px;
-  padding: 28px;
+}
+
+.hero-card,
+.panel-card,
+.game-panel {
+  padding: 24px;
 }
 
 .game-panel {
   width: min(100%, 540px);
   border-radius: 24px;
-  padding: 20px;
 }
 
-.eyebrow {
-  margin: 0 0 8px;
-  color: var(--accent);
-  font-size: 0.82rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-h1,
-h2,
-h3 {
-  margin: 0;
-}
-
-h1 {
-  font-size: clamp(2.2rem, 7vw, 3.4rem);
-}
-
-h2 {
-  font-size: 1.6rem;
-}
-
-.hero-copy,
-.panel-copy,
-.selection-text,
-.complete-card p {
-  color: var(--muted);
-  line-height: 1.5;
-}
-
-.hero-copy {
-  margin: 12px 0 24px;
-}
-
-.hero-actions,
-.daily-footer {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-}
-
+.icon-btn,
 .primary-btn,
 .secondary-btn,
 .ghost-btn,
@@ -120,7 +83,8 @@ h2 {
 .number-pad button,
 .difficulty-btn,
 .month-tab,
-.calendar-grid button {
+.calendar-grid button,
+.language-btn {
   min-height: 46px;
   border-radius: 14px;
   border: 1px solid transparent;
@@ -128,14 +92,7 @@ h2 {
   transition: transform 140ms ease, background-color 140ms ease, border-color 140ms ease, color 140ms ease;
 }
 
-.primary-btn,
-.secondary-btn,
-.ghost-btn,
-.action-buttons button,
-.number-pad button {
-  padding: 0 16px;
-}
-
+.icon-btn:hover,
 .primary-btn:hover,
 .secondary-btn:hover,
 .ghost-btn:hover,
@@ -143,8 +100,33 @@ h2 {
 .number-pad button:hover,
 .difficulty-btn:hover,
 .month-tab:hover,
-.calendar-grid button:hover:not(:disabled) {
+.calendar-grid button:hover:not(:disabled),
+.language-btn:hover {
   transform: translateY(-1px);
+}
+
+.icon-btn {
+  width: 46px;
+  min-width: 46px;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.72);
+  border-color: rgba(148, 163, 184, 0.32);
+  color: var(--text);
+}
+
+.icon-btn.small {
+  width: 40px;
+  min-width: 40px;
+  min-height: 40px;
+}
+
+.primary-btn,
+.secondary-btn,
+.ghost-btn,
+.action-buttons button,
+.number-pad button,
+.language-btn {
+  padding: 0 16px;
 }
 
 .primary-btn {
@@ -164,9 +146,142 @@ h2 {
   color: var(--text);
 }
 
+.block-btn {
+  width: 100%;
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  color: var(--accent);
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+h1,
+ h2,
+ h3 {
+  margin: 0;
+}
+
+h1 {
+  font-size: clamp(2.4rem, 7vw, 3.8rem);
+}
+
+h2 {
+  font-size: 1.6rem;
+}
+
+.hero-copy,
+.panel-copy,
+.selection-text,
+.modal-copy,
+.complete-card p {
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.hero-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(220px, 0.8fr);
+  gap: 20px;
+  align-items: center;
+}
+
+.hero-actions,
+.daily-footer,
+.confirm-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.hero-preview {
+  position: relative;
+  min-height: 280px;
+  display: grid;
+  place-items: center;
+}
+
+.preview-glow {
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(30px);
+  opacity: 0.85;
+}
+
+.preview-glow-a {
+  width: 130px;
+  height: 130px;
+  background: rgba(59, 130, 246, 0.18);
+  top: 12px;
+  right: 20px;
+}
+
+.preview-glow-b {
+  width: 120px;
+  height: 120px;
+  background: rgba(34, 197, 94, 0.14);
+  bottom: 18px;
+  left: 10px;
+}
+
+.preview-board {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 250px;
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  background: var(--line-strong);
+  border: 2px solid var(--line-strong);
+  border-radius: 18px;
+  overflow: hidden;
+  transform: rotate(-4deg);
+}
+
+.preview-cell {
+  aspect-ratio: 1;
+  border: 1px solid var(--line);
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.92);
+  font-weight: 700;
+  color: #334155;
+}
+
+.preview-cell.soft {
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.preview-cell.block-right {
+  border-right: 2px solid var(--line-strong);
+}
+
+.preview-cell.block-bottom {
+  border-bottom: 2px solid var(--line-strong);
+}
+
+.screen-home .icon-btn {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 2;
+}
+
 .panel-head,
 .topbar,
-.meta-row {
+.meta-row,
+.modal-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -184,13 +299,20 @@ h2 {
   margin: 18px 0 10px;
 }
 
-.month-tab {
+.month-tab,
+.difficulty-btn,
+.language-btn,
+.calendar-grid button,
+.action-buttons button,
+.number-pad button {
   background: var(--panel-strong);
   border-color: var(--line);
-  color: var(--muted);
+  color: var(--text);
 }
 
-.month-tab.active {
+.month-tab.active,
+.language-btn.active,
+.action-buttons button.active {
   background: var(--accent-soft);
   border-color: var(--accent);
   color: var(--accent);
@@ -217,11 +339,6 @@ h2 {
   border-radius: 16px;
 }
 
-.calendar-grid button {
-  border-color: var(--line);
-  background: var(--panel-strong);
-}
-
 .calendar-grid button.today {
   border-color: var(--accent);
 }
@@ -245,10 +362,6 @@ h2 {
   border: 1px dashed rgba(148, 163, 184, 0.28);
 }
 
-.selection-text {
-  margin: 0;
-}
-
 .difficulty-grid {
   display: grid;
   gap: 12px;
@@ -256,8 +369,6 @@ h2 {
 }
 
 .difficulty-btn {
-  background: var(--panel-strong);
-  border-color: var(--line);
   text-align: left;
   padding: 18px;
   display: grid;
@@ -268,7 +379,8 @@ h2 {
   font-size: 1.1rem;
 }
 
-.difficulty-btn span {
+.difficulty-btn span,
+.settings-label {
   color: var(--muted);
 }
 
@@ -383,7 +495,8 @@ h2 {
 }
 
 .action-buttons,
-.number-pad {
+.number-pad,
+.language-grid {
   display: grid;
   gap: 8px;
 }
@@ -396,11 +509,8 @@ h2 {
   grid-template-columns: repeat(9, 1fr);
 }
 
-.action-buttons button,
-.number-pad button {
-  background: var(--panel-strong);
-  border-color: var(--line);
-  color: var(--text);
+.language-grid {
+  grid-template-columns: repeat(2, 1fr);
 }
 
 .number-pad-btn {
@@ -424,11 +534,6 @@ h2 {
   color: var(--muted);
 }
 
-.action-buttons button.active {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-}
-
 .number-pad.note-active button {
   background: #e5e7eb;
 }
@@ -439,13 +544,29 @@ h2 {
   opacity: 0.55;
 }
 
-.complete-overlay {
+.modal-overlay {
   position: fixed;
   inset: 0;
   background: rgba(15, 23, 42, 0.24);
   display: grid;
   place-items: center;
   padding: 20px;
+}
+
+.modal-card {
+  width: min(100%, 380px);
+  padding: 22px;
+}
+
+.settings-card {
+  display: grid;
+  gap: 16px;
+}
+
+.settings-section,
+.settings-home-wrap {
+  display: grid;
+  gap: 10px;
 }
 
 .complete-card {
@@ -540,6 +661,16 @@ h2 {
   }
 }
 
+@media (max-width: 680px) {
+  .hero-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-preview {
+    min-height: 220px;
+  }
+}
+
 @media (max-width: 560px) {
   .app-shell {
     padding: 14px;
@@ -548,6 +679,7 @@ h2 {
   .hero-card,
   .panel-card,
   .game-panel,
+  .modal-card,
   .complete-card {
     padding: 18px;
     border-radius: 22px;
@@ -556,16 +688,14 @@ h2 {
   .panel-head,
   .topbar,
   .meta-row,
-  .daily-footer {
+  .daily-footer,
+  .confirm-actions {
     align-items: flex-start;
     flex-direction: column;
   }
 
-  .month-tabs {
-    grid-template-columns: repeat(3, 1fr);
-  }
-
-  .action-buttons {
+  .action-buttons,
+  .language-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 
@@ -573,4 +703,3 @@ h2 {
     grid-template-columns: repeat(3, 1fr);
   }
 }
-
