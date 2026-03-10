@@ -518,6 +518,110 @@ h2 {
   padding-left: 18px;
 }
 
+.help-carousel {
+  display: grid;
+  gap: 14px;
+}
+
+.help-page-meta {
+  justify-self: end;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.help-subtitle {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.help-example-board {
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  max-width: 260px;
+  margin: 0 auto;
+  background: var(--line-strong);
+  border: 2px solid var(--line-strong);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.help-mini-cell {
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--line);
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #334155;
+}
+
+.help-mini-cell.focus {
+  background: #eef4ff;
+}
+
+.help-mini-cell.conflict {
+  background: #fee2e2;
+  color: var(--danger);
+}
+
+.help-mini-cell.block-right {
+  border-right: 2px solid var(--line-strong);
+}
+
+.help-mini-cell.block-bottom {
+  border-bottom: 2px solid var(--line-strong);
+}
+
+.help-controls-visual {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px dashed rgba(148, 163, 184, 0.36);
+}
+
+.help-chip-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.help-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: var(--panel-strong);
+  border: 1px solid var(--line);
+  color: var(--text);
+}
+
+.help-chip.active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.help-keyboard {
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.help-nav {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.help-nav-btn {
+  min-width: 100px;
+}
+
 .board {
   display: grid;
   grid-template-columns: repeat(9, 1fr);
@@ -821,7 +925,8 @@ h2 {
   .meta-row,
   .daily-footer,
   .confirm-actions,
-  .help-panel-head {
+  .help-panel-head,
+  .help-nav {
     align-items: flex-start;
     flex-direction: column;
   }
@@ -841,5 +946,6 @@ h2 {
     grid-template-columns: repeat(3, 1fr);
   }
 }
+
 
 

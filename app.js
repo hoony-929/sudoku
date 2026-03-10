@@ -78,7 +78,14 @@ const TRANSLATIONS = {
     helpControl2: "Delete 또는 Backspace를 누르면 지우개와 같은 동작을 합니다.",
     helpControl3: "노트 모드에서는 같은 규칙을 지키는 후보 숫자만 메모할 수 있습니다.",
     helpControl4: "힌트는 총 3번까지 사용할 수 있고, 확인 팝업에서 '예'를 눌러야 사용됩니다.",
-    helpControl5: "숫자가 모두 맞으면 완료 애니메이션이 표시됩니다."
+    helpControl5: "숫자가 모두 맞으면 완료 애니메이션이 표시됩니다.",
+    helpStepRulesRow: "가로줄 규칙",
+    helpStepRulesColumn: "세로줄 규칙",
+    helpStepRulesBlock: "3x3 블록 규칙",
+    helpStepControls: "조작 방법",
+    helpPrev: "이전",
+    helpNext: "다음",
+    helpDone: "확인"
   },
   en: {
     homeEyebrow: "Minimal Sudoku",
@@ -153,7 +160,14 @@ const TRANSLATIONS = {
     helpControl2: "Delete or Backspace works like the eraser button.",
     helpControl3: "In note mode, only candidates that follow the same Sudoku rules can be added.",
     helpControl4: "You can use up to 3 hints, and a hint is only spent after pressing 'Yes'.",
-    helpControl5: "A completion animation appears once every number is correct."
+    helpControl5: "A completion animation appears once every number is correct.",
+    helpStepRulesRow: "Row Rule",
+    helpStepRulesColumn: "Column Rule",
+    helpStepRulesBlock: "3x3 Block Rule",
+    helpStepControls: "Controls",
+    helpPrev: "Back",
+    helpNext: "Next",
+    helpDone: "Done"
   },
   ja: {
     homeEyebrow: "Minimal Sudoku",
@@ -228,7 +242,14 @@ const TRANSLATIONS = {
     helpControl2: "Delete または Backspace は消しゴムと同じ動作です。",
     helpControl3: "メモモードでも同じルールを満たす候補だけを追加できます。",
     helpControl4: "ヒントは 3 回まで使え、「はい」を押したときだけ消費されます。",
-    helpControl5: "すべて正解するとクリアアニメーションが表示されます。"
+    helpControl5: "すべて正解するとクリアアニメーションが表示されます。",
+    helpStepRulesRow: "行のルール",
+    helpStepRulesColumn: "列のルール",
+    helpStepRulesBlock: "3x3 ブロックのルール",
+    helpStepControls: "操作方法",
+    helpPrev: "前へ",
+    helpNext: "次へ",
+    helpDone: "確認"
   },
   zh: {
     homeEyebrow: "Minimal Sudoku",
@@ -303,7 +324,14 @@ const TRANSLATIONS = {
     helpControl2: "Delete 或 Backspace 的效果与橡皮擦按钮相同。",
     helpControl3: "笔记模式下也只能添加符合相同规则的候选数字。",
     helpControl4: "提示最多可用 3 次，并且只有点击“是”后才会消耗。",
-    helpControl5: "全部数字正确后会显示完成动画。"
+    helpControl5: "全部数字正确后会显示完成动画。",
+    helpStepRulesRow: "行规则",
+    helpStepRulesColumn: "列规则",
+    helpStepRulesBlock: "3x3 宫格规则",
+    helpStepControls: "操作方式",
+    helpPrev: "上一页",
+    helpNext: "下一页",
+    helpDone: "完成"
   }
 };
 
@@ -334,7 +362,7 @@ const elements = {
   helpModalBody: document.getElementById("helpModalBody"), gameHelpPanel: document.getElementById("gameHelpPanel"), gameHelpPanelTitle: document.getElementById("gameHelpPanelTitle"), gameHelpPanelBody: document.getElementById("gameHelpPanelBody"), gameLayout: document.getElementById("gameLayout"), heroPreviewBoard: document.getElementById("heroPreviewBoard")
 };
 
-const state = { language: "ko", currentScreen: "home", settingsContext: "home", dailySelectedMonth: TODAY.month, dailySelectedDay: TODAY.day, game: null, confirmAction: null, completedDates: loadCompletedDates(), gameHelpOpen: false };
+const state = { language: "ko", currentScreen: "home", settingsContext: "home", dailySelectedMonth: TODAY.month, dailySelectedDay: TODAY.day, game: null, confirmAction: null, completedDates: loadCompletedDates(), gameHelpOpen: false, helpPage: 0 };
 
 function t(key, params = {}) { const template = TRANSLATIONS[state.language][key] || TRANSLATIONS.ko[key] || key; return template.replace(/\{(\w+)\}/g, (_, token) => String(params[token] ?? "")); }
 function monthName(month) { return MONTH_NAMES[state.language]?.[month - 1] || String(month); }
@@ -392,8 +420,13 @@ function showOverlay(overlay) { overlay.classList.remove("hidden"); overlay.setA
 function hideOverlay(overlay) { overlay.classList.add("hidden"); overlay.setAttribute("aria-hidden", "true"); }
 function openSettings(context) { state.settingsContext = context; renderSettingsModal(); showOverlay(elements.settingsOverlay); }
 function closeSettings() { hideOverlay(elements.settingsOverlay); }
-function openHelpModal() { renderHelpContent(elements.helpModalBody); document.getElementById("helpModalTitle").textContent = t("helpTitle"); showOverlay(elements.helpOverlay); }
+function openHelpModal() { state.helpPage = 0; renderHelpContent(elements.helpModalBody); document.getElementById("helpModalTitle").textContent = t("helpTitle"); showOverlay(elements.helpOverlay); }
 function closeHelpModal() { hideOverlay(elements.helpOverlay); }
+function getHelpPages() { return [{ title: t("helpRulesTitle"), subtitle: t("helpStepRulesRow"), body: t("helpRule1"), example: "row" }, { title: t("helpRulesTitle"), subtitle: t("helpStepRulesColumn"), body: t("helpRule2"), example: "column" }, { title: t("helpRulesTitle"), subtitle: t("helpStepRulesBlock"), body: t("helpRule3"), example: "block" }, { title: t("helpControlsTitle"), subtitle: t("helpStepControls"), list: [t("helpControl1"), t("helpControl2"), t("helpControl3"), t("helpControl4"), t("helpControl5")], example: "controls" }]; }
+function getHelpExampleBoard(type) { const empty = Array.from({ length: 81 }, () => ""); if (type === "row") { empty[9] = "5"; empty[11] = "3"; empty[13] = "5"; empty[15] = "8"; return { cells: empty, focus: [1], conflicts: [9, 13] }; } if (type === "column") { empty[2] = "7"; empty[20] = "4"; empty[38] = "7"; empty[56] = "9"; return { cells: empty, focus: [2], conflicts: [2, 38] }; } empty[0] = "2"; empty[1] = "8"; empty[10] = "2"; empty[20] = "6"; return { cells: empty, block: 0, conflicts: [0, 10] }; }
+function renderHelpExample(example) { if (example === "controls") { return `<div class="help-controls-visual"><div class="help-chip-row"><span class="help-chip">1 2 3 4 5 6 7 8 9</span></div><div class="help-chip-row"><span class="help-chip">Undo</span><span class="help-chip">Erase</span><span class="help-chip active">Note</span><span class="help-chip">Hint</span></div><div class="help-keyboard">Keyboard: 1-9 / Delete / Backspace</div></div>`; } const board = getHelpExampleBoard(example); const cells = board.cells.map((value, index) => { const row = Math.floor(index / 9); const col = index % 9; const classes = ["help-mini-cell"]; if ((col + 1) % 3 === 0 && col !== 8) { classes.push("block-right"); } if ((row + 1) % 3 === 0 && row !== 8) { classes.push("block-bottom"); } if (board.focus?.includes(row) || board.focus?.includes(col)) { classes.push("focus"); } if (typeof board.block === "number" && Math.floor(row / 3) * 3 + Math.floor(col / 3) === board.block) { classes.push("focus"); } if (board.conflicts.includes(index)) { classes.push("conflict"); } if (value) { classes.push("filled"); } return `<div class="${classes.join(" ")}">${value}</div>`; }).join(""); return `<div class="help-example-board">${cells}</div>`; }
+function refreshHelpViews() { if (!elements.helpOverlay.classList.contains("hidden")) { renderHelpContent(elements.helpModalBody); document.getElementById("helpModalTitle").textContent = t("helpTitle"); } if (state.currentScreen === "game" && state.gameHelpOpen) { renderGameHelpPanel(); } }
+function changeHelpPage(offset) { const pages = getHelpPages(); state.helpPage = Math.max(0, Math.min(pages.length - 1, state.helpPage + offset)); refreshHelpViews(); }
 function openConfirm(type) { state.confirmAction = type; renderConfirmModal(); showOverlay(elements.confirmOverlay); }
 function closeConfirm() { state.confirmAction = null; hideOverlay(elements.confirmOverlay); }
 function showCompletionOverlay() { renderCompleteModal(); showOverlay(elements.completeOverlay); }
@@ -403,11 +436,27 @@ function renderHeroPreview() {
   PREVIEW_BOARD.forEach((row, rowIndex) => row.forEach((value, colIndex) => { const cell = document.createElement("div"); cell.className = "preview-cell"; if ((colIndex + 1) % 3 === 0 && colIndex !== 8) { cell.classList.add("block-right"); } if ((rowIndex + 1) % 3 === 0 && rowIndex !== 8) { cell.classList.add("block-bottom"); } if (value === 0) { cell.classList.add("soft"); cell.textContent = rowIndex % 2 === 0 ? "." : ""; } else { cell.textContent = String(value); } elements.heroPreviewBoard.appendChild(cell); }));
 }
 function renderHelpContent(target) {
-  target.innerHTML = `
-    <section><p>${t("helpIntro")}</p></section>
-    <section><h3>${t("helpRulesTitle")}</h3><ul><li>${t("helpRule1")}</li><li>${t("helpRule2")}</li><li>${t("helpRule3")}</li></ul></section>
-    <section><h3>${t("helpControlsTitle")}</h3><ul><li>${t("helpControl1")}</li><li>${t("helpControl2")}</li><li>${t("helpControl3")}</li><li>${t("helpControl4")}</li><li>${t("helpControl5")}</li></ul></section>
-  `;
+  const pages = getHelpPages();
+  const page = pages[state.helpPage];
+  const listHtml = page.list ? `<ul>${page.list.map((item) => `<li>${item}</li>`).join("")}</ul>` : `<p>${page.body}</p>`;
+  target.innerHTML = `<div class="help-carousel"><div class="help-page-meta">${state.helpPage + 1} / ${pages.length}</div><section><p>${t("helpIntro")}</p><h3>${page.title}</h3><div class="help-subtitle">${page.subtitle}</div>${listHtml}</section><section>${renderHelpExample(page.example)}</section><div class="help-nav"><button type="button" class="secondary-btn help-nav-btn" data-help-nav="prev" ${state.helpPage === 0 ? "disabled" : ""}>${t("helpPrev")}</button><button type="button" class="primary-btn help-nav-btn" data-help-nav="next">${state.helpPage === pages.length - 1 ? t("helpDone") : t("helpNext")}</button></div></div>`;
+  const prevButton = target.querySelector('[data-help-nav="prev"]');
+  const nextButton = target.querySelector('[data-help-nav="next"]');
+  if (prevButton) { prevButton.addEventListener("click", () => changeHelpPage(-1)); }
+  if (nextButton) {
+    nextButton.addEventListener("click", () => {
+      if (state.helpPage === pages.length - 1) {
+        if (target === elements.helpModalBody) {
+          closeHelpModal();
+        } else {
+          state.gameHelpOpen = false;
+          renderGameHelpPanel();
+        }
+        return;
+      }
+      changeHelpPage(1);
+    });
+  }
 }
 function renderHomeScreen() {
   document.documentElement.lang = state.language; document.getElementById("homeEyebrow").textContent = t("homeEyebrow"); document.getElementById("homeTitle").textContent = t("homeTitle"); document.getElementById("homeCopy").textContent = t("homeCopy"); document.getElementById("homeHelpBtn").textContent = t("homeHelp"); document.getElementById("dailyEntryBtn").textContent = t("dailyEntry"); document.getElementById("startEntryBtn").textContent = t("startEntry");
@@ -512,7 +561,93 @@ function useHint() {
 function undo() { const game = state.game; if (!game) { return; } const snapshot = game.history.pop(); if (!snapshot) { return; } restoreSnapshot(game, snapshot); closeCompletionOverlay(); if (game.completed) { stopTimer(game); } else { startTimer(game); } renderGame(); }
 function goHome() { stopCurrentGameTimer(); closeSettings(); closeConfirm(); closeHelpModal(); closeCompletionOverlay(); state.gameHelpOpen = false; openScreen("home"); }
 function changeLanguage(language) { state.language = language; renderAllStatic(); }
-function toggleGameHelpPanel() { if (state.currentScreen !== "game") { return; } state.gameHelpOpen = !state.gameHelpOpen; renderGameHelpPanel(); }
+function toggleGameHelpPanel() { if (state.currentScreen !== "game") { return; } state.gameHelpOpen = !state.gameHelpOpen; if (state.gameHelpOpen) { state.helpPage = 0; } renderGameHelpPanel(); }
+function getHelpPages() {
+  return [
+    { title: t("helpRulesTitle"), subtitle: t("helpStepRulesRow"), body: t("helpRule1"), example: "row" },
+    { title: t("helpRulesTitle"), subtitle: t("helpStepRulesColumn"), body: t("helpRule2"), example: "column" },
+    { title: t("helpRulesTitle"), subtitle: t("helpStepRulesBlock"), body: t("helpRule3"), example: "block" },
+    { title: t("helpControlsTitle"), subtitle: t("helpStepControls"), list: [t("helpControl1"), t("helpControl2"), t("helpControl3"), t("helpControl4"), t("helpControl5")], example: "controls" }
+  ];
+}
+function getHelpExampleBoard(type) {
+  const cells = Array.from({ length: 81 }, () => "");
+  if (type === "row") {
+    cells[9] = "5";
+    cells[11] = "3";
+    cells[13] = "5";
+    cells[15] = "8";
+    return { cells, rowFocus: 1, conflicts: [9, 13] };
+  }
+  if (type === "column") {
+    cells[2] = "7";
+    cells[20] = "4";
+    cells[38] = "7";
+    cells[56] = "9";
+    return { cells, colFocus: 2, conflicts: [2, 38] };
+  }
+  cells[0] = "2";
+  cells[1] = "8";
+  cells[10] = "2";
+  cells[20] = "6";
+  return { cells, blockFocus: 0, conflicts: [0, 10] };
+}
+function renderHelpExample(example) {
+  if (example === "controls") {
+    return `<div class="help-controls-visual"><div class="help-chip-row"><span class="help-chip">1 2 3 4 5 6 7 8 9</span></div><div class="help-chip-row"><span class="help-chip">${t("undo")}</span><span class="help-chip">${t("erase")}</span><span class="help-chip active">${t("note")}</span><span class="help-chip">${t("hint")}</span></div><div class="help-keyboard">Keyboard: 1-9 / Delete / Backspace</div></div>`;
+  }
+  const board = getHelpExampleBoard(example);
+  const cells = board.cells.map((value, index) => {
+    const row = Math.floor(index / 9);
+    const col = index % 9;
+    const blockIndex = Math.floor(row / 3) * 3 + Math.floor(col / 3);
+    const classes = ["help-mini-cell"];
+    if ((col + 1) % 3 === 0 && col !== 8) { classes.push("block-right"); }
+    if ((row + 1) % 3 === 0 && row !== 8) { classes.push("block-bottom"); }
+    if (board.rowFocus === row || board.colFocus === col || board.blockFocus === blockIndex) { classes.push("focus"); }
+    if (board.conflicts.includes(index)) { classes.push("conflict"); }
+    if (value) { classes.push("filled"); }
+    return `<div class="${classes.join(" ")}">${value}</div>`;
+  }).join("");
+  return `<div class="help-example-board">${cells}</div>`;
+}
+function refreshHelpViews() {
+  if (!elements.helpOverlay.classList.contains("hidden")) {
+    renderHelpContent(elements.helpModalBody);
+    document.getElementById("helpModalTitle").textContent = t("helpTitle");
+  }
+  if (state.currentScreen === "game" && state.gameHelpOpen) {
+    renderGameHelpPanel();
+  }
+}
+function changeHelpPage(offset) {
+  const pages = getHelpPages();
+  state.helpPage = Math.max(0, Math.min(pages.length - 1, state.helpPage + offset));
+  refreshHelpViews();
+}
+function renderHelpContent(target) {
+  const pages = getHelpPages();
+  const page = pages[state.helpPage];
+  const listHtml = page.list ? `<ul>${page.list.map((item) => `<li>${item}</li>`).join("")}</ul>` : `<p>${page.body}</p>`;
+  target.innerHTML = `<div class="help-carousel"><div class="help-page-meta">${state.helpPage + 1} / ${pages.length}</div><section><p>${t("helpIntro")}</p><h3>${page.title}</h3><div class="help-subtitle">${page.subtitle}</div>${listHtml}</section><section>${renderHelpExample(page.example)}</section><div class="help-nav"><button type="button" class="secondary-btn help-nav-btn" data-help-nav="prev" ${state.helpPage === 0 ? "disabled" : ""}>${t("helpPrev")}</button><button type="button" class="primary-btn help-nav-btn" data-help-nav="next">${state.helpPage === pages.length - 1 ? t("helpDone") : t("helpNext")}</button></div></div>`;
+  const prevButton = target.querySelector('[data-help-nav="prev"]');
+  const nextButton = target.querySelector('[data-help-nav="next"]');
+  if (prevButton) { prevButton.addEventListener("click", () => changeHelpPage(-1)); }
+  if (nextButton) {
+    nextButton.addEventListener("click", () => {
+      if (state.helpPage === pages.length - 1) {
+        if (target === elements.helpModalBody) {
+          closeHelpModal();
+        } else {
+          state.gameHelpOpen = false;
+          renderGameHelpPanel();
+        }
+        return;
+      }
+      changeHelpPage(1);
+    });
+  }
+}
 function confirmYes() { const action = state.confirmAction; closeConfirm(); if (action === "restartDaily") { startDailySession(); return; } if (action === "hint") { useHint(); } }
 function isOverlayOpen() { return !elements.settingsOverlay.classList.contains("hidden") || !elements.confirmOverlay.classList.contains("hidden") || !elements.helpOverlay.classList.contains("hidden") || !elements.completeOverlay.classList.contains("hidden"); }
 function handleKeydown(event) {
@@ -549,3 +684,6 @@ function initializeEvents() {
   bindOverlayClose(elements.helpOverlay, closeHelpModal); bindOverlayClose(elements.settingsOverlay, closeSettings); bindOverlayClose(elements.confirmOverlay, closeConfirm); document.addEventListener("keydown", handleKeydown);
 }
 renderHeroPreview(); normalizeSelectedDate(); renderAllStatic(); openScreen("home"); closeCompletionOverlay(); closeSettings(); closeConfirm(); closeHelpModal(); initializeEvents();
+
+
+
