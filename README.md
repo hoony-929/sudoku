@@ -23,3 +23,12 @@
 - `styles.css`: visual styles and responsive layout
 - `app.js`: game logic, translations, calendar flow, and modal logic
 - `server.js`: local static dev server
+
+## AdSense Setup
+
+- This project now includes a policy-safer AdSense mount only on the home screen.
+- It stays hidden until you fill `D:\sudoku-app\ads-config.js` with your approved AdSense values.
+- Edit `client` to your `ca-pub-...` value.
+- Edit `slots.home` to your AdSense display ad slot id.
+- Avoid placing ads next to the game number pad or hint buttons.
+- Do not show forced ads after mistakes or on every action.
