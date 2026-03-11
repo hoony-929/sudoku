@@ -22,7 +22,9 @@ function resolvePath(urlPath) {
   const safePath = decodeURIComponent(urlPath.split("?")[0]);
   const normalizedPath = safePath === "/" ? "/index.html" : safePath;
   const fullPath = path.join(rootDir, normalizedPath);
-  if (!fullPath.startsWith(rootDir)) {
+
+  const relative = path.relative(rootDir, fullPath);
+  if (relative.startsWith("..") || path.isAbsolute(relative)) {
     return null;
   }
   return fullPath;
