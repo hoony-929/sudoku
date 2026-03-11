@@ -413,6 +413,95 @@ function generatePuzzle(solution, removals, seed) {
 }
 function createCells(puzzle) { return puzzle.map((row, rowIndex) => row.map((value, colIndex) => ({ row: rowIndex, col: colIndex, value, fixed: value !== 0, notes: [] }))); }
 function cloneCells(cells) { return cells.map((row) => row.map((cell) => ({ ...cell, notes: [...cell.notes] }))); }
+
+function findAlternativeSolution(game, testRow, testCol, testVal) {
+  const grid = [];
+  for (let r = 0; r < 9; r += 1) {
+    grid[r] = [];
+    for (let c = 0; c < 9; c += 1) {
+      grid[r][c] = game.cells[r][c].value;
+    }
+  }
+  grid[testRow][testCol] = testVal;
+
+  const rowHas = new Int32Array(9);
+  const colHas = new Int32Array(9);
+  const boxHas = new Int32Array(9);
+  let emptyCells = [];
+
+  for (let r = 0; r < 9; r += 1) {
+    for (let c = 0; c < 9; c += 1) {
+      if (grid[r][c] !== 0) {
+        const val = grid[r][c];
+        const bit = 1 << val;
+        const box = Math.floor(r / 3) * 3 + Math.floor(c / 3);
+        if ((rowHas[r] & bit) || (colHas[c] & bit) || (boxHas[box] & bit)) {
+          return null;
+        }
+        rowHas[r] |= bit;
+        colHas[c] |= bit;
+        boxHas[box] |= bit;
+      } else {
+        emptyCells.push((r << 16) | c);
+      }
+    }
+  }
+
+  function getOptions(r, c) {
+    const box = Math.floor(r / 3) * 3 + Math.floor(c / 3);
+    const used = rowHas[r] | colHas[c] | boxHas[box];
+    let count = 0;
+    for (let i = 1; i <= 9; i += 1) {
+      if ((used & (1 << i)) === 0) { count += 1; }
+    }
+    return count;
+  }
+
+  function solve(index) {
+    if (index === emptyCells.length) { return true; }
+    let bestIndex = index;
+    let minOpt = 10;
+    for (let i = index; i < emptyCells.length; i += 1) {
+      const cell = emptyCells[i];
+      const r = cell >> 16;
+      const c = cell & 0xFFFF;
+      const opt = getOptions(r, c);
+      if (opt === 0) { return false; }
+      if (opt < minOpt) {
+        minOpt = opt;
+        bestIndex = i;
+        if (minOpt === 1) { break; }
+      }
+    }
+
+    const bestCell = emptyCells[bestIndex];
+    emptyCells[bestIndex] = emptyCells[index];
+    emptyCells[index] = bestCell;
+
+    const r = bestCell >> 16;
+    const c = bestCell & 0xFFFF;
+    const box = Math.floor(r / 3) * 3 + Math.floor(c / 3);
+    const used = rowHas[r] | colHas[c] | boxHas[box];
+
+    for (let val = 1; val <= 9; val += 1) {
+      const bit = 1 << val;
+      if ((used & bit) === 0) {
+        rowHas[r] |= bit;
+        colHas[c] |= bit;
+        boxHas[box] |= bit;
+        grid[r][c] = val;
+        if (solve(index + 1)) { return true; }
+        rowHas[r] &= ~bit;
+        colHas[c] &= ~bit;
+        boxHas[box] &= ~bit;
+        grid[r][c] = 0;
+      }
+    }
+    return false;
+  }
+
+  return solve(0) ? grid : null;
+}
 function buildSession(options) {
   const solution = generateSolution(options.seed); const puzzle = generatePuzzle(solution, options.removals, options.seed + 17);
   return { mode: options.mode, dailyMonth: options.dailyMonth || null, dailyDay: options.dailyDay || null, difficulty: options.difficulty || null, badgeKey: options.badgeKey, titleMode: options.titleMode, seed: options.seed, removals: options.removals, solution, puzzle, cells: createCells(puzzle), history: [], selected: null, noteMode: false, hintsRemaining: 3, completed: false, highlightNumber: null, blinkCells: new Set(), blinkToken: null, elapsedSeconds: 0, startedAt: Date.now(), timerId: null, mistakes: 0 };
@@ -532,7 +621,15 @@ function finishIfComplete(game) { if (game.completed || !isComplete(game)) { ret
 function toggleValue(game, cell, number) {
   if (cell.value === number) { cell.value = 0; cell.notes = []; return { blink: [], wrongEntry: false }; }
   const conflicts = getConflicts(game, cell.row, cell.col, number); if (conflicts.length > 0) { return { blocked: true, blink: conflicts, wrongEntry: false }; }
-  cell.value = number; cell.notes = []; const isWrong = number !== game.solution[cell.row][cell.col]; if (!isWrong) { clearRelatedNotes(game, cell.row, cell.col, number); } return { blink: [], wrongEntry: isWrong };
+  cell.value = number; cell.notes = []; let isWrong = number !== game.solution[cell.row][cell.col];
+  if (isWrong) {
+    const alternativeSolution = findAlternativeSolution(game, cell.row, cell.col, number);
+    if (alternativeSolution) {
+      game.solution = alternativeSolution;
+      isWrong = false;
+    }
+  }
+  if (!isWrong) { clearRelatedNotes(game, cell.row, cell.col, number); } return { blink: [], wrongEntry: isWrong };
 }
 function toggleNote(game, cell, number) {
   const conflicts = getConflicts(game, cell.row, cell.col, number); if (conflicts.length > 0) { return { blocked: true, blink: conflicts }; }
