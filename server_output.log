@@ -1,0 +1,5 @@
+
+> sudoku-app@1.0.0 start
+> node server.js
+
+Sudoku dev server running at http://127.0.0.1:4173

@@ -383,12 +383,10 @@ const state = { language: "ko", currentScreen: "home", settingsContext: "home", 
 
 function t(key, params = {}) { const template = TRANSLATIONS[state.language][key] || TRANSLATIONS.ko[key] || key; return template.replace(/\{(\w+)\}/g, (_, token) => String(params[token] ?? "")); }
 function monthName(month) { return MONTH_NAMES[state.language]?.[month - 1] || String(month); }
-function daysInMonth(year, month) { return new Date(year, month, 0).getDate(); }
 function loadCompletedDates() { try { return new Set(JSON.parse(localStorage.getItem(DAILY_STORAGE_KEY) || "[]")); } catch { return new Set(); } }
 function persistCompletedDates() { localStorage.setItem(DAILY_STORAGE_KEY, JSON.stringify([...state.completedDates])); }
 function getDailyDateKey(month, day) { return `${TODAY.year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`; }
 function markDailyCompleted(month, day) { state.completedDates.add(getDailyDateKey(month, day)); persistCompletedDates(); }
-function formatSeconds(seconds) { const minutes = Math.floor(seconds / 60); const remain = seconds % 60; return `${String(minutes).padStart(2, "0")}:${String(remain).padStart(2, "0")}`; }
 function mulberry32(seed) { let current = seed >>> 0; return function next() { current += 0x6d2b79f5; let result = current; result = Math.imul(result ^ (result >>> 15), result | 1); result ^= result + Math.imul(result ^ (result >>> 7), result | 61); return ((result ^ (result >>> 14)) >>> 0) / 4294967296; }; }
 function shuffled(array, random) { const copy = [...array]; for (let index = copy.length - 1; index > 0; index -= 1) { const swapIndex = Math.floor(random() * (index + 1)); [copy[index], copy[swapIndex]] = [copy[swapIndex], copy[index]]; } return copy; }
 function cloneGrid(grid) { return grid.map((row) => [...row]); }
