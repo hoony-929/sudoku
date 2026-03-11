@@ -3,6 +3,7 @@ const TODAY = { year: 2026, month: 3, day: 11 };
 const START_MONTH = 1;
 const LANGUAGES = ["ko", "en", "ja", "zh"];
 const DAILY_STORAGE_KEY = "sudoku-completed-days";
+const MAX_MISTAKES = 5;
 
 const TRANSLATIONS = {
   ko: {
@@ -65,7 +66,7 @@ const TRANSLATIONS = {
     difficultyWordMedium: "중",
     difficultyWordHard: "상",
     hintRemaining: "힌트 {count}회 남음",
-    mistakesLabel: "오답 {count}/3",
+    mistakesLabel: "오답 {count}/5",
     elapsedLabel: "경과시간 {time}",
     helpTitle: "설명 보기",
     helpIntro: "스도쿠 기본 규칙과 키보드 사용법을 한 번에 볼 수 있습니다.",
@@ -147,7 +148,7 @@ const TRANSLATIONS = {
     difficultyWordMedium: "Medium",
     difficultyWordHard: "Hard",
     hintRemaining: "{count} hints left",
-    mistakesLabel: "Mistakes {count}/3",
+    mistakesLabel: "Mistakes {count}/5",
     elapsedLabel: "Time {time}",
     helpTitle: "How To Play",
     helpIntro: "Here are the core rules and keyboard shortcuts.",
@@ -229,7 +230,7 @@ const TRANSLATIONS = {
     difficultyWordMedium: "中級",
     difficultyWordHard: "上級",
     hintRemaining: "ヒント残り {count}",
-    mistakesLabel: "ミス {count}/3",
+    mistakesLabel: "ミス {count}/5",
     elapsedLabel: "時間 {time}",
     helpTitle: "説明を見る",
     helpIntro: "基本ルールとキーボード操作をまとめて確認できます。",
@@ -311,7 +312,7 @@ const TRANSLATIONS = {
     difficultyWordMedium: "中等",
     difficultyWordHard: "困难",
     hintRemaining: "剩余提示 {count} 次",
-    mistakesLabel: "错误 {count}/3",
+    mistakesLabel: "错误 {count}/5",
     elapsedLabel: "时间 {time}",
     helpTitle: "查看说明",
     helpIntro: "这里可以快速查看规则和键盘操作。",
@@ -351,7 +352,7 @@ const BASE_SOLUTION = [
   [3, 4, 5, 2, 8, 6, 1, 7, 9]
 ];
 
-const DIFFICULTY_CONFIG = { easy: { removals: 40 }, medium: { removals: 48 }, hard: { removals: 54 }, daily: { removals: 52 } };
+const DIFFICULTY_CONFIG = { easy: { removals: 40 }, medium: { removals: 48 }, hard: { removals: 54 }, daily: { removals: 48 } };
 const PREVIEW_BOARD = [[5,0,0,2,7,0,1,0,9],[0,7,0,0,0,1,0,2,0],[1,0,4,0,0,0,6,0,0],[0,0,7,0,4,0,0,9,0],[4,0,0,9,0,3,0,0,2],[0,9,0,0,6,0,5,0,0],[0,0,1,0,0,0,7,0,4],[0,4,0,1,0,0,0,5,0],[7,0,8,0,5,4,0,0,6]];
 
 const screens = { home: document.getElementById("homeScreen"), daily: document.getElementById("dailyScreen"), difficulty: document.getElementById("difficultyScreen"), game: document.getElementById("gameScreen") };
@@ -390,7 +391,7 @@ function createCells(puzzle) { return puzzle.map((row, rowIndex) => row.map((val
 function cloneCells(cells) { return cells.map((row) => row.map((cell) => ({ ...cell, notes: [...cell.notes] }))); }
 function buildSession(options) {
   const solution = generateSolution(options.seed); const puzzle = generatePuzzle(solution, options.removals, options.seed + 17);
-  return { mode: options.mode, dailyMonth: options.dailyMonth || null, dailyDay: options.dailyDay || null, difficulty: options.difficulty || null, badgeKey: options.badgeKey, titleMode: options.titleMode, solution, puzzle, cells: createCells(puzzle), history: [], selected: null, noteMode: false, hintsRemaining: 3, completed: false, highlightNumber: null, blinkCells: new Set(), blinkToken: null, elapsedSeconds: 0, startedAt: Date.now(), timerId: null, mistakes: 0 };
+  return { mode: options.mode, dailyMonth: options.dailyMonth || null, dailyDay: options.dailyDay || null, difficulty: options.difficulty || null, badgeKey: options.badgeKey, titleMode: options.titleMode, seed: options.seed, removals: options.removals, solution, puzzle, cells: createCells(puzzle), history: [], selected: null, noteMode: false, hintsRemaining: 3, completed: false, highlightNumber: null, blinkCells: new Set(), blinkToken: null, elapsedSeconds: 0, startedAt: Date.now(), timerId: null, mistakes: 0 };
 }
 function getSelectedCell(game) { return game?.selected ? game.cells[game.selected.row][game.selected.col] : null; }
 function updateHighlight(game) { const cell = getSelectedCell(game); game.highlightNumber = cell && cell.value !== 0 ? cell.value : null; }
@@ -503,7 +504,7 @@ function renderNumberPad() {
   for (let number = 1; number <= 9; number += 1) { const button = document.createElement("button"); const value = document.createElement("span"); const count = document.createElement("span"); button.type = "button"; button.className = "number-pad-btn"; value.className = "number-pad-value"; count.className = "number-pad-count"; value.textContent = String(number); count.textContent = String(getPlacedCount(game, number)); button.disabled = isNumberCompleteAcrossBlocks(game, number); button.appendChild(value); button.appendChild(count); button.addEventListener("click", () => handleNumberInput(number)); elements.numberPad.appendChild(button); }
 }
 function renderGameMeta() {
-  const game = state.game; if (!game) { return; } elements.gameBadge.textContent = getGameBadgeText(game); elements.gameTitle.textContent = getGameTitleText(game); elements.mistakeMeta.textContent = t("mistakesLabel", { count: Math.min(game.mistakes, 3) }); elements.timerMeta.textContent = t("elapsedLabel", { time: formatSeconds(game.elapsedSeconds) }); elements.hintMeta.textContent = t("hintRemaining", { count: game.hintsRemaining }); elements.hintBtnLabel.textContent = t("hint"); elements.hintCount.textContent = String(game.hintsRemaining); document.getElementById("undoBtn").textContent = t("undo"); document.getElementById("eraseBtn").textContent = t("erase"); document.getElementById("noteBtn").textContent = t("note"); document.getElementById("noteBtn").classList.toggle("active", game.noteMode); document.getElementById("undoBtn").disabled = game.history.length === 0; document.getElementById("hintBtn").disabled = game.hintsRemaining === 0;
+  const game = state.game; if (!game) { return; } elements.gameBadge.textContent = getGameBadgeText(game); elements.gameTitle.textContent = getGameTitleText(game); elements.mistakeMeta.textContent = t("mistakesLabel", { count: Math.min(game.mistakes, MAX_MISTAKES) }); elements.timerMeta.textContent = t("elapsedLabel", { time: formatSeconds(game.elapsedSeconds) }); elements.hintMeta.textContent = t("hintRemaining", { count: game.hintsRemaining }); elements.hintBtnLabel.textContent = t("hint"); elements.hintCount.textContent = String(game.hintsRemaining); document.getElementById("undoBtn").textContent = t("undo"); document.getElementById("eraseBtn").textContent = t("erase"); document.getElementById("noteBtn").textContent = t("note"); document.getElementById("noteBtn").classList.toggle("active", game.noteMode); document.getElementById("undoBtn").disabled = game.history.length === 0; document.getElementById("hintBtn").disabled = game.hintsRemaining === 0;
 }
 function renderGameHelpPanel() { const isVisible = state.currentScreen === "game" && state.gameHelpOpen; elements.gameLayout.classList.toggle("help-open", isVisible); elements.gameHelpPanel.classList.toggle("hidden", !isVisible); if (isVisible) { elements.gameHelpPanelTitle.textContent = t("helpTitle"); renderHelpContent(elements.gameHelpPanelBody); } }
 function renderGame() { if (!state.game) { return; } renderGameMeta(); renderBoard(); renderNumberPad(); renderGameHelpPanel(); }
@@ -520,6 +521,7 @@ function stopTimer(game) { if (game?.timerId) { window.clearInterval(game.timerI
 function startTimer(game) { stopTimer(game); game.startedAt = Date.now() - game.elapsedSeconds * 1000; game.timerId = window.setInterval(() => { syncTimer(game); if (state.game === game && state.currentScreen === "game") { renderGameMeta(); } }, 1000); }
 function stopCurrentGameTimer() { if (state.game) { syncTimer(state.game); stopTimer(state.game); } }
 function startGame(options) { stopCurrentGameTimer(); state.game = buildSession(options); state.gameHelpOpen = false; openScreen("game"); startTimer(state.game); renderGame(); closeCompletionOverlay(); closeConfirm(); }
+function restartCurrentGame() { const game = state.game; if (!game) { return; } startGame({ mode: game.mode, titleMode: game.titleMode, dailyMonth: game.dailyMonth, dailyDay: game.dailyDay, difficulty: game.difficulty, badgeKey: game.badgeKey, seed: game.seed, removals: game.removals }); }
 function startDailySession() {
   const isToday = state.dailySelectedMonth === TODAY.month && state.dailySelectedDay === TODAY.day; const dateSeed = Number(`${TODAY.year}${String(state.dailySelectedMonth).padStart(2, "0")}${String(state.dailySelectedDay).padStart(2, "0")}`); const seed = isToday ? dateSeed : Math.floor(Math.random() * 1000000) + dateSeed + Date.now();
   startGame({ mode: "daily", titleMode: "daily", dailyMonth: state.dailySelectedMonth, dailyDay: state.dailySelectedDay, badgeKey: isToday ? "badgeDaily" : "badgeRandom", seed, removals: DIFFICULTY_CONFIG.daily.removals });
@@ -684,6 +686,8 @@ function initializeEvents() {
   bindOverlayClose(elements.helpOverlay, closeHelpModal); bindOverlayClose(elements.settingsOverlay, closeSettings); bindOverlayClose(elements.confirmOverlay, closeConfirm); document.addEventListener("keydown", handleKeydown);
 }
 renderHeroPreview(); normalizeSelectedDate(); renderAllStatic(); openScreen("home"); closeCompletionOverlay(); closeSettings(); closeConfirm(); closeHelpModal(); initializeEvents();
+
+
 
 
 
