@@ -86,7 +86,11 @@ const TRANSLATIONS = {
     helpStepControls: "조작 방법",
     helpPrev: "이전",
     helpNext: "다음",
-    helpDone: "확인"
+    helpDone: "확인",
+    failTitle: "실패했습니다",
+    failCopy: "오답 5회를 모두 사용했습니다. 다시 도전하거나 돌아갈 수 있습니다.",
+    failRetry: "다시 도전",
+    failBack: "돌아가기"
   },
   en: {
     homeEyebrow: "Minimal Sudoku",
@@ -168,7 +172,11 @@ const TRANSLATIONS = {
     helpStepControls: "Controls",
     helpPrev: "Back",
     helpNext: "Next",
-    helpDone: "Done"
+    helpDone: "Done",
+    failTitle: "Failed",
+    failCopy: "You used all 5 mistakes. You can retry this puzzle or go back.",
+    failRetry: "Retry",
+    failBack: "Go Back"
   },
   ja: {
     homeEyebrow: "Minimal Sudoku",
@@ -250,7 +258,11 @@ const TRANSLATIONS = {
     helpStepControls: "操作方法",
     helpPrev: "前へ",
     helpNext: "次へ",
-    helpDone: "確認"
+    helpDone: "確認",
+    failTitle: "失敗しました",
+    failCopy: "ミス 5 回をすべて使いました。同じパズルに再挑戦するか戻ることができます。",
+    failRetry: "再挑戦",
+    failBack: "戻る"
   },
   zh: {
     homeEyebrow: "Minimal Sudoku",
@@ -332,7 +344,11 @@ const TRANSLATIONS = {
     helpStepControls: "操作方式",
     helpPrev: "上一页",
     helpNext: "下一页",
-    helpDone: "完成"
+    helpDone: "完成",
+    failTitle: "失败了",
+    failCopy: "你已用完 5 次错误机会。可以重新挑战或返回。",
+    failRetry: "重新挑战",
+    failBack: "返回"
   }
 };
 
@@ -359,7 +375,7 @@ const screens = { home: document.getElementById("homeScreen"), daily: document.g
 const elements = {
   board: document.getElementById("board"), numberPad: document.getElementById("numberPad"), hintCount: document.getElementById("hintCount"), hintBtnLabel: document.getElementById("hintBtnLabel"), hintMeta: document.getElementById("hintMeta"), timerMeta: document.getElementById("timerMeta"), mistakeMeta: document.getElementById("mistakeMeta"),
   gameBadge: document.getElementById("gameBadge"), gameTitle: document.getElementById("gameTitle"), monthTabs: document.getElementById("monthTabs"), weekdayRow: document.getElementById("weekdayRow"), calendarGrid: document.getElementById("calendarGrid"), dailyTitle: document.getElementById("dailyTitle"),
-  dailySelectionText: document.getElementById("dailySelectionText"), completeOverlay: document.getElementById("completeOverlay"), settingsOverlay: document.getElementById("settingsOverlay"), confirmOverlay: document.getElementById("confirmOverlay"), helpOverlay: document.getElementById("helpOverlay"),
+  dailySelectionText: document.getElementById("dailySelectionText"), completeOverlay: document.getElementById("completeOverlay"), settingsOverlay: document.getElementById("settingsOverlay"), confirmOverlay: document.getElementById("confirmOverlay"), helpOverlay: document.getElementById("helpOverlay"), failOverlay: document.getElementById("failOverlay"),
   helpModalBody: document.getElementById("helpModalBody"), gameHelpPanel: document.getElementById("gameHelpPanel"), gameHelpPanelTitle: document.getElementById("gameHelpPanelTitle"), gameHelpPanelBody: document.getElementById("gameHelpPanelBody"), gameLayout: document.getElementById("gameLayout"), heroPreviewBoard: document.getElementById("heroPreviewBoard")
 };
 
@@ -419,6 +435,8 @@ function getPlacedCount(game, number) { let count = 0; game.cells.forEach((row) 
 function openScreen(name) { Object.entries(screens).forEach(([key, element]) => { element.classList.toggle("hidden", key !== name); }); state.currentScreen = name; if (name !== "game") { state.gameHelpOpen = false; renderGameHelpPanel(); } }
 function showOverlay(overlay) { overlay.classList.remove("hidden"); overlay.setAttribute("aria-hidden", "false"); }
 function hideOverlay(overlay) { overlay.classList.add("hidden"); overlay.setAttribute("aria-hidden", "true"); }
+function openFailOverlay() { renderFailModal(); showOverlay(elements.failOverlay); }
+function closeFailOverlay() { hideOverlay(elements.failOverlay); }
 function openSettings(context) { state.settingsContext = context; renderSettingsModal(); showOverlay(elements.settingsOverlay); }
 function closeSettings() { hideOverlay(elements.settingsOverlay); }
 function openHelpModal() { state.helpPage = 0; renderHelpContent(elements.helpModalBody); document.getElementById("helpModalTitle").textContent = t("helpTitle"); showOverlay(elements.helpOverlay); }
@@ -515,12 +533,13 @@ function renderConfirmModal() {
   const isRestart = state.confirmAction === "restartDaily"; document.getElementById("confirmTitle").textContent = isRestart ? t("restartModalTitle") : t("hintModalTitle"); document.getElementById("confirmCopy").textContent = isRestart ? t("restartModalCopy") : t("hintModalCopy"); document.getElementById("confirmCancelBtn").textContent = t("no"); document.getElementById("confirmConfirmBtn").textContent = t("yes");
 }
 function renderCompleteModal() { document.getElementById("completeTitle").textContent = t("completeTitle"); document.getElementById("completeCopy").textContent = t("completeCopy"); document.getElementById("completeHomeBtn").textContent = t("completeHome"); }
-function renderAllStatic() { renderHomeScreen(); renderDailyScreen(); renderDifficultyScreen(); renderSettingsModal(); renderConfirmModal(); renderCompleteModal(); renderHelpContent(elements.helpModalBody); document.getElementById("helpModalTitle").textContent = t("helpTitle"); if (state.game) { renderGame(); } }
+function renderFailModal() { document.getElementById("failTitle").textContent = t("failTitle"); document.getElementById("failCopy").textContent = t("failCopy"); document.getElementById("failRetryBtn").textContent = t("failRetry"); document.getElementById("failBackBtn").textContent = t("failBack"); }
+function renderAllStatic() { renderHomeScreen(); renderDailyScreen(); renderDifficultyScreen(); renderSettingsModal(); renderConfirmModal(); renderCompleteModal(); renderFailModal(); renderHelpContent(elements.helpModalBody); document.getElementById("helpModalTitle").textContent = t("helpTitle"); if (state.game) { renderGame(); } }
 function syncTimer(game) { game.elapsedSeconds = Math.floor((Date.now() - game.startedAt) / 1000); }
 function stopTimer(game) { if (game?.timerId) { window.clearInterval(game.timerId); game.timerId = null; } }
 function startTimer(game) { stopTimer(game); game.startedAt = Date.now() - game.elapsedSeconds * 1000; game.timerId = window.setInterval(() => { syncTimer(game); if (state.game === game && state.currentScreen === "game") { renderGameMeta(); } }, 1000); }
 function stopCurrentGameTimer() { if (state.game) { syncTimer(state.game); stopTimer(state.game); } }
-function startGame(options) { stopCurrentGameTimer(); state.game = buildSession(options); state.gameHelpOpen = false; openScreen("game"); startTimer(state.game); renderGame(); closeCompletionOverlay(); closeConfirm(); }
+function startGame(options) { stopCurrentGameTimer(); state.game = buildSession(options); state.gameHelpOpen = false; openScreen("game"); startTimer(state.game); renderGame(); closeCompletionOverlay(); closeConfirm(); closeFailOverlay(); }
 function restartCurrentGame() { const game = state.game; if (!game) { return; } startGame({ mode: game.mode, titleMode: game.titleMode, dailyMonth: game.dailyMonth, dailyDay: game.dailyDay, difficulty: game.difficulty, badgeKey: game.badgeKey, seed: game.seed, removals: game.removals }); }
 function startDailySession() {
   const isToday = state.dailySelectedMonth === TODAY.month && state.dailySelectedDay === TODAY.day; const dateSeed = Number(`${TODAY.year}${String(state.dailySelectedMonth).padStart(2, "0")}${String(state.dailySelectedDay).padStart(2, "0")}`); const seed = isToday ? dateSeed : Math.floor(Math.random() * 1000000) + dateSeed + Date.now();
@@ -546,7 +565,15 @@ function handleNumberInput(number) {
   const game = state.game; if (!game || !game.selected) { return; } const cell = getSelectedCell(game); if (!cell || cell.fixed) { const fixedConflicts = cell ? getConflicts(game, cell.row, cell.col, cell.value) : []; triggerConflictBlink(game, fixedConflicts); return; }
   saveHistory(game); const result = game.noteMode ? toggleNote(game, cell, number) : toggleValue(game, cell, number);
   if (result.blocked) { game.history.pop(); triggerConflictBlink(game, result.blink); return; }
-  if (!game.noteMode && result.wrongEntry) { game.mistakes += 1; }
+  if (!game.noteMode && result.wrongEntry) {
+    game.mistakes += 1;
+    if (game.mistakes >= MAX_MISTAKES) {
+      stopTimer(game);
+      renderGame();
+      openFailOverlay();
+      return;
+    }
+  }
   updateHighlight(game); triggerConflictBlink(game, result.blink); if (!finishIfComplete(game)) { renderGame(); }
 }
 function eraseSelectedCell() {
@@ -561,7 +588,7 @@ function useHint() {
   saveHistory(game); cell.value = correctValue; cell.notes = []; game.hintsRemaining -= 1; clearRelatedNotes(game, cell.row, cell.col, correctValue); updateHighlight(game); if (!finishIfComplete(game)) { renderGame(); }
 }
 function undo() { const game = state.game; if (!game) { return; } const snapshot = game.history.pop(); if (!snapshot) { return; } restoreSnapshot(game, snapshot); closeCompletionOverlay(); if (game.completed) { stopTimer(game); } else { startTimer(game); } renderGame(); }
-function goHome() { stopCurrentGameTimer(); closeSettings(); closeConfirm(); closeHelpModal(); closeCompletionOverlay(); state.gameHelpOpen = false; openScreen("home"); }
+function goHome() { stopCurrentGameTimer(); closeSettings(); closeConfirm(); closeHelpModal(); closeCompletionOverlay(); closeFailOverlay(); state.gameHelpOpen = false; openScreen("home"); }
 function changeLanguage(language) { state.language = language; renderAllStatic(); }
 function toggleGameHelpPanel() { if (state.currentScreen !== "game") { return; } state.gameHelpOpen = !state.gameHelpOpen; if (state.gameHelpOpen) { state.helpPage = 0; } renderGameHelpPanel(); }
 function getHelpPages() {
@@ -651,7 +678,9 @@ function renderHelpContent(target) {
   }
 }
 function confirmYes() { const action = state.confirmAction; closeConfirm(); if (action === "restartDaily") { startDailySession(); return; } if (action === "hint") { useHint(); } }
-function isOverlayOpen() { return !elements.settingsOverlay.classList.contains("hidden") || !elements.confirmOverlay.classList.contains("hidden") || !elements.helpOverlay.classList.contains("hidden") || !elements.completeOverlay.classList.contains("hidden"); }
+function handleFailRetry() { closeFailOverlay(); restartCurrentGame(); }
+function handleFailBack() { closeFailOverlay(); if (window.history.length > 1) { window.history.back(); return; } goHome(); }
+function isOverlayOpen() { return !elements.settingsOverlay.classList.contains("hidden") || !elements.confirmOverlay.classList.contains("hidden") || !elements.helpOverlay.classList.contains("hidden") || !elements.completeOverlay.classList.contains("hidden") || !elements.failOverlay.classList.contains("hidden"); }
 function handleKeydown(event) {
   if (event.key === "Escape") { if (!elements.helpOverlay.classList.contains("hidden")) { closeHelpModal(); return; } if (!elements.settingsOverlay.classList.contains("hidden")) { closeSettings(); return; } if (!elements.confirmOverlay.classList.contains("hidden")) { closeConfirm(); return; } if (state.gameHelpOpen) { state.gameHelpOpen = false; renderGameHelpPanel(); } return; }
   if (state.currentScreen !== "game" || !state.game || isOverlayOpen()) { return; }
@@ -674,6 +703,8 @@ function initializeEvents() {
   document.getElementById("settingsHomeBtn").addEventListener("click", goHome);
   document.getElementById("helpCloseBtn").addEventListener("click", closeHelpModal);
   document.getElementById("completeHomeBtn").addEventListener("click", goHome);
+  document.getElementById("failRetryBtn").addEventListener("click", handleFailRetry);
+  document.getElementById("failBackBtn").addEventListener("click", handleFailBack);
   document.getElementById("dailyStartBtn").addEventListener("click", startDailyChallenge);
   document.getElementById("hintBtn").addEventListener("click", requestHint);
   document.getElementById("confirmCancelBtn").addEventListener("click", closeConfirm);
@@ -685,7 +716,9 @@ function initializeEvents() {
   LANGUAGES.forEach((language) => document.querySelector(`.language-btn[data-lang="${language}"]`).addEventListener("click", () => changeLanguage(language)));
   bindOverlayClose(elements.helpOverlay, closeHelpModal); bindOverlayClose(elements.settingsOverlay, closeSettings); bindOverlayClose(elements.confirmOverlay, closeConfirm); document.addEventListener("keydown", handleKeydown);
 }
-renderHeroPreview(); normalizeSelectedDate(); renderAllStatic(); openScreen("home"); closeCompletionOverlay(); closeSettings(); closeConfirm(); closeHelpModal(); initializeEvents();
+renderHeroPreview(); normalizeSelectedDate(); renderAllStatic(); openScreen("home"); closeCompletionOverlay(); closeSettings(); closeConfirm(); closeHelpModal(); closeFailOverlay(); initializeEvents();
+
+
 
 
 
