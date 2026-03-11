@@ -389,80 +389,411 @@ const elements = {
 
 const state = { language: "ko", currentScreen: "home", settingsContext: "home", dailySelectedMonth: TODAY.month, dailySelectedDay: TODAY.day, game: null, confirmAction: null, completedDates: loadCompletedDates(), gameHelpOpen: false, helpPage: 0 };
 
-function t(key, params = {}) { const template = TRANSLATIONS[state.language][key] || TRANSLATIONS.ko[key] || key; return template.replace(/\{(\w+)\}/g, (_, token) => String(params[token] ?? "")); }
-function monthName(month) { return MONTH_NAMES[state.language]?.[month - 1] || String(month); }
-function daysInMonth(year, month) { return new Date(year, month, 0).getDate(); }
-function loadCompletedDates() { try { return new Set(JSON.parse(localStorage.getItem(DAILY_STORAGE_KEY) || "[]")); } catch { return new Set(); } }
-function persistCompletedDates() { localStorage.setItem(DAILY_STORAGE_KEY, JSON.stringify([...state.completedDates])); }
-function getDailyDateKey(month, day) { return `${TODAY.year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`; }
-function markDailyCompleted(month, day) { state.completedDates.add(getDailyDateKey(month, day)); persistCompletedDates(); }
-function formatSeconds(seconds) { const minutes = Math.floor(seconds / 60); const remain = seconds % 60; return `${String(minutes).padStart(2, "0")}:${String(remain).padStart(2, "0")}`; }
-function mulberry32(seed) { let current = seed >>> 0; return function next() { current += 0x6d2b79f5; let result = current; result = Math.imul(result ^ (result >>> 15), result | 1); result ^= result + Math.imul(result ^ (result >>> 7), result | 61); return ((result ^ (result >>> 14)) >>> 0) / 4294967296; }; }
-function shuffled(array, random) { const copy = [...array]; for (let index = copy.length - 1; index > 0; index -= 1) { const swapIndex = Math.floor(random() * (index + 1)); [copy[index], copy[swapIndex]] = [copy[swapIndex], copy[index]]; } return copy; }
-function cloneGrid(grid) { return grid.map((row) => [...row]); }
-function transpose(grid) { return grid[0].map((_, col) => grid.map((row) => row[col])); }
-function swapRowsWithinBands(grid, random) { const next = []; for (let band = 0; band < 3; band += 1) { const rows = [0,1,2].map((offset) => grid[band * 3 + offset]); next.push(...shuffled(rows, random)); } return next; }
-function swapBands(grid, random) { const bands = [0,1,2].map((band) => grid.slice(band * 3, band * 3 + 3)); return shuffled(bands, random).flat(); }
-function remapDigits(grid, random) { const digits = shuffled([1,2,3,4,5,6,7,8,9], random); const digitMap = new Map(digits.map((digit, index) => [index + 1, digit])); return grid.map((row) => row.map((value) => digitMap.get(value))); }
-function generateSolution(seed) { const random = mulberry32(seed); let grid = cloneGrid(BASE_SOLUTION); grid = swapRowsWithinBands(grid, random); grid = swapBands(grid, random); grid = transpose(grid); grid = swapRowsWithinBands(grid, random); grid = swapBands(grid, random); grid = transpose(grid); return remapDigits(grid, random); }
+function t(key, params = {}) {
+  const template = TRANSLATIONS[state.language][key] || TRANSLATIONS.ko[key] || key;
+  return template.replace(/\{(\w+)\}/g, (_, token) => String(params[token] ?? ""));
+}
+
+function monthName(month) {
+  return MONTH_NAMES[state.language]?.[month - 1] || String(month);
+}
+
+function daysInMonth(year, month) {
+  return new Date(year, month, 0).getDate();
+}
+
+function loadCompletedDates() {
+  try {
+    return new Set(JSON.parse(localStorage.getItem(DAILY_STORAGE_KEY) || "[]"));
+  } catch {
+    return new Set();
+  }
+}
+
+function persistCompletedDates() {
+  localStorage.setItem(DAILY_STORAGE_KEY, JSON.stringify([...state.completedDates]));
+}
+
+function getDailyDateKey(month, day) {
+  return `${TODAY.year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+function markDailyCompleted(month, day) {
+  state.completedDates.add(getDailyDateKey(month, day));
+  persistCompletedDates();
+}
+
+function formatSeconds(seconds) {
+  const minutes = Math.floor(seconds / 60);
+  const remain = seconds % 60;
+  return `${String(minutes).padStart(2, "0")}:${String(remain).padStart(2, "0")}`;
+}
+
+function mulberry32(seed) {
+  let current = seed >>> 0;
+  return function next() {
+    current += 0x6d2b79f5;
+    let result = current;
+    result = Math.imul(result ^ (result >>> 15), result | 1);
+    result ^= result + Math.imul(result ^ (result >>> 7), result | 61);
+    return ((result ^ (result >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function shuffled(array, random) {
+  const copy = [...array];
+  for (let index = copy.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(random() * (index + 1));
+    [copy[index], copy[swapIndex]] = [copy[swapIndex], copy[index]];
+  }
+  return copy;
+}
+
+function cloneGrid(grid) {
+  return grid.map((row) => [...row]);
+}
+
+function transpose(grid) {
+  return grid[0].map((_, col) => grid.map((row) => row[col]));
+}
+
+function swapRowsWithinBands(grid, random) {
+  const next = [];
+  for (let band = 0; band < 3; band += 1) {
+    const rows = [0, 1, 2].map((offset) => grid[band * 3 + offset]);
+    next.push(...shuffled(rows, random));
+  }
+  return next;
+}
+
+function swapBands(grid, random) {
+  const bands = [0, 1, 2].map((band) => grid.slice(band * 3, band * 3 + 3));
+  return shuffled(bands, random).flat();
+}
+
+function remapDigits(grid, random) {
+  const digits = shuffled([1, 2, 3, 4, 5, 6, 7, 8, 9], random);
+  const digitMap = new Map(digits.map((digit, index) => [index + 1, digit]));
+  return grid.map((row) => row.map((value) => digitMap.get(value)));
+}
+
+function generateSolution(seed) {
+  const random = mulberry32(seed);
+  let grid = cloneGrid(BASE_SOLUTION);
+  grid = swapRowsWithinBands(grid, random);
+  grid = swapBands(grid, random);
+  grid = transpose(grid);
+  grid = swapRowsWithinBands(grid, random);
+  grid = swapBands(grid, random);
+  grid = transpose(grid);
+  return remapDigits(grid, random);
+}
 function generatePuzzle(solution, removals, seed) {
   const random = mulberry32(seed ^ 0x9e3779b9); const puzzle = cloneGrid(solution); const positions = []; const rowClues = new Array(9).fill(9); const colClues = new Array(9).fill(9); const blockClues = new Array(9).fill(9); let removed = 0;
   for (let row = 0; row < 9; row += 1) { for (let col = 0; col < 9; col += 1) { positions.push({ row, col }); } }
   shuffled(positions, random).forEach(({ row, col }) => { if (removed >= removals) { return; } const block = Math.floor(row / 3) * 3 + Math.floor(col / 3); if (rowClues[row] <= 3 || colClues[col] <= 3 || blockClues[block] <= 3) { return; } puzzle[row][col] = 0; rowClues[row] -= 1; colClues[col] -= 1; blockClues[block] -= 1; removed += 1; });
   return puzzle;
 }
-function createCells(puzzle) { return puzzle.map((row, rowIndex) => row.map((value, colIndex) => ({ row: rowIndex, col: colIndex, value, fixed: value !== 0, notes: [] }))); }
-function cloneCells(cells) { return cells.map((row) => row.map((cell) => ({ ...cell, notes: [...cell.notes] }))); }
+function createCells(puzzle) {
+  return puzzle.map((row, rowIndex) =>
+    row.map((value, colIndex) => ({
+      row: rowIndex,
+      col: colIndex,
+      value,
+      fixed: value !== 0,
+      notes: []
+    }))
+  );
+}
+
+function cloneCells(cells) {
+  return cells.map((row) => row.map((cell) => ({ ...cell, notes: [...cell.notes] })));
+}
 function buildSession(options) {
   const solution = generateSolution(options.seed); const puzzle = generatePuzzle(solution, options.removals, options.seed + 17);
   return { mode: options.mode, dailyMonth: options.dailyMonth || null, dailyDay: options.dailyDay || null, difficulty: options.difficulty || null, badgeKey: options.badgeKey, titleMode: options.titleMode, seed: options.seed, removals: options.removals, solution, puzzle, cells: createCells(puzzle), history: [], selected: null, noteMode: false, hintsRemaining: 3, completed: false, highlightNumber: null, blinkCells: new Set(), blinkToken: null, elapsedSeconds: 0, startedAt: Date.now(), timerId: null, mistakes: 0 };
 }
-function getSelectedCell(game) { return game?.selected ? game.cells[game.selected.row][game.selected.col] : null; }
-function updateHighlight(game) { const cell = getSelectedCell(game); game.highlightNumber = cell && cell.value !== 0 ? cell.value : null; }
-function saveHistory(game) { game.history.push({ cells: cloneCells(game.cells), selected: game.selected ? { ...game.selected } : null, noteMode: game.noteMode, hintsRemaining: game.hintsRemaining, completed: game.completed, highlightNumber: game.highlightNumber }); }
-function restoreSnapshot(game, snapshot) { game.cells = cloneCells(snapshot.cells); game.selected = snapshot.selected ? { ...snapshot.selected } : null; game.noteMode = snapshot.noteMode; game.hintsRemaining = snapshot.hintsRemaining; game.completed = snapshot.completed; game.highlightNumber = snapshot.highlightNumber; game.blinkCells = new Set(); game.blinkToken = null; }
-function isRelated(row, col, selected) { return !!selected && (selected.row === row || selected.col === col || (Math.floor(selected.row / 3) === Math.floor(row / 3) && Math.floor(selected.col / 3) === Math.floor(col / 3))); }
+function getSelectedCell(game) {
+  return game?.selected ? game.cells[game.selected.row][game.selected.col] : null;
+}
+
+function updateHighlight(game) {
+  const cell = getSelectedCell(game);
+  game.highlightNumber = cell && cell.value !== 0 ? cell.value : null;
+}
+
+function saveHistory(game) {
+  game.history.push({
+    cells: cloneCells(game.cells),
+    selected: game.selected ? { ...game.selected } : null,
+    noteMode: game.noteMode,
+    hintsRemaining: game.hintsRemaining,
+    completed: game.completed,
+    highlightNumber: game.highlightNumber
+  });
+}
+
+function restoreSnapshot(game, snapshot) {
+  game.cells = cloneCells(snapshot.cells);
+  game.selected = snapshot.selected ? { ...snapshot.selected } : null;
+  game.noteMode = snapshot.noteMode;
+  game.hintsRemaining = snapshot.hintsRemaining;
+  game.completed = snapshot.completed;
+  game.highlightNumber = snapshot.highlightNumber;
+  game.blinkCells = new Set();
+  game.blinkToken = null;
+}
+
+function isRelated(row, col, selected) {
+  return !!selected && (
+    selected.row === row ||
+    selected.col === col ||
+    (Math.floor(selected.row / 3) === Math.floor(row / 3) && Math.floor(selected.col / 3) === Math.floor(col / 3))
+  );
+}
+
 function getConflicts(game, row, col, number) {
-  const seen = new Map(); if (!number) { return []; }
-  for (let index = 0; index < 9; index += 1) { if (index !== col && game.cells[row][index].value === number) { seen.set(`${row}-${index}`, { row, col: index }); } if (index !== row && game.cells[index][col].value === number) { seen.set(`${index}-${col}`, { row: index, col }); } }
-  const startRow = Math.floor(row / 3) * 3; const startCol = Math.floor(col / 3) * 3;
-  for (let currentRow = startRow; currentRow < startRow + 3; currentRow += 1) { for (let currentCol = startCol; currentCol < startCol + 3; currentCol += 1) { if ((currentRow !== row || currentCol !== col) && game.cells[currentRow][currentCol].value === number) { seen.set(`${currentRow}-${currentCol}`, { row: currentRow, col: currentCol }); } } }
+  const seen = new Map();
+  if (!number) {
+    return [];
+  }
+  for (let index = 0; index < 9; index += 1) {
+    if (index !== col && game.cells[row][index].value === number) {
+      seen.set(`${row}-${index}`, { row, col: index });
+    }
+    if (index !== row && game.cells[index][col].value === number) {
+      seen.set(`${index}-${col}`, { row: index, col });
+    }
+  }
+  const startRow = Math.floor(row / 3) * 3;
+  const startCol = Math.floor(col / 3) * 3;
+  for (let currentRow = startRow; currentRow < startRow + 3; currentRow += 1) {
+    for (let currentCol = startCol; currentCol < startCol + 3; currentCol += 1) {
+      if ((currentRow !== row || currentCol !== col) && game.cells[currentRow][currentCol].value === number) {
+        seen.set(`${currentRow}-${currentCol}`, { row: currentRow, col: currentCol });
+      }
+    }
+  }
   return [...seen.values()];
 }
-function triggerConflictBlink(game, conflicts) { if (!conflicts.length) { return; } const token = `${Date.now()}-${Math.random()}`; game.blinkToken = token; game.blinkCells = new Set(conflicts.map((cell) => `${cell.row}-${cell.col}`)); renderGame(); window.setTimeout(() => { if (!state.game || state.game !== game || game.blinkToken !== token) { return; } game.blinkCells = new Set(); game.blinkToken = null; renderGame(); }, 900); }
-function isWrongCell(game, cell) { return !cell.fixed && cell.value !== 0 && cell.value !== game.solution[cell.row][cell.col]; }
-function isComplete(game) { return game.cells.every((row) => row.every((cell) => cell.value !== 0 && cell.value === game.solution[cell.row][cell.col])); }
-function clearRelatedNotes(game, row, col, number) {
-  const targets = new Map(); for (let index = 0; index < 9; index += 1) { if (index !== col) { targets.set(`${row}-${index}`, game.cells[row][index]); } if (index !== row) { targets.set(`${index}-${col}`, game.cells[index][col]); } }
-  const startRow = Math.floor(row / 3) * 3; const startCol = Math.floor(col / 3) * 3;
-  for (let currentRow = startRow; currentRow < startRow + 3; currentRow += 1) { for (let currentCol = startCol; currentCol < startCol + 3; currentCol += 1) { if (currentRow !== row || currentCol !== col) { targets.set(`${currentRow}-${currentCol}`, game.cells[currentRow][currentCol]); } } }
-  targets.forEach((cell) => { cell.notes = cell.notes.filter((note) => note !== number); });
+
+function triggerConflictBlink(game, conflicts) {
+  if (!conflicts.length) {
+    return;
+  }
+  const token = `${Date.now()}-${Math.random()}`;
+  game.blinkToken = token;
+  game.blinkCells = new Set(conflicts.map((cell) => `${cell.row}-${cell.col}`));
+  renderGame();
+  window.setTimeout(() => {
+    if (!state.game || state.game !== game || game.blinkToken !== token) {
+      return;
+    }
+    game.blinkCells = new Set();
+    game.blinkToken = null;
+    renderGame();
+  }, 900);
 }
-function isNumberCompleteAcrossBlocks(game, number) { for (let blockRow = 0; blockRow < 3; blockRow += 1) { for (let blockCol = 0; blockCol < 3; blockCol += 1) { let found = false; for (let row = blockRow * 3; row < blockRow * 3 + 3; row += 1) { for (let col = blockCol * 3; col < blockCol * 3 + 3; col += 1) { if (game.cells[row][col].value === number) { found = true; } } } if (!found) { return false; } } } return true; }
-function getPlacedCount(game, number) { let count = 0; game.cells.forEach((row) => row.forEach((cell) => { if (cell.value === number) { count += 1; } })); return count; }
-function openScreen(name) { Object.entries(screens).forEach(([key, element]) => { element.classList.toggle("hidden", key !== name); }); state.currentScreen = name; if (name !== "game") { state.gameHelpOpen = false; renderGameHelpPanel(); } }
-function showOverlay(overlay) { overlay.classList.remove("hidden"); overlay.setAttribute("aria-hidden", "false"); }
-function hideOverlay(overlay) { overlay.classList.add("hidden"); overlay.setAttribute("aria-hidden", "true"); }
-function openFailOverlay() { renderFailModal(); showOverlay(elements.failOverlay); }
-function closeFailOverlay() { hideOverlay(elements.failOverlay); }
-function openSettings(context) { state.settingsContext = context; renderSettingsModal(); showOverlay(elements.settingsOverlay); }
-function closeSettings() { hideOverlay(elements.settingsOverlay); }
-function openHelpModal() { state.helpPage = 0; renderHelpContent(elements.helpModalBody); document.getElementById("helpModalTitle").textContent = t("helpTitle"); showOverlay(elements.helpOverlay); }
-function closeHelpModal() { hideOverlay(elements.helpOverlay); }
-function openConfirm(type) { state.confirmAction = type; renderConfirmModal(); showOverlay(elements.confirmOverlay); }
-function closeConfirm() { state.confirmAction = null; hideOverlay(elements.confirmOverlay); }
-function showCompletionOverlay() { renderCompleteModal(); showOverlay(elements.completeOverlay); }
-function closeCompletionOverlay() { hideOverlay(elements.completeOverlay); }
+function isWrongCell(game, cell) {
+  return !cell.fixed && cell.value !== 0 && cell.value !== game.solution[cell.row][cell.col];
+}
+
+function isComplete(game) {
+  return game.cells.every((row) =>
+    row.every((cell) => cell.value !== 0 && cell.value === game.solution[cell.row][cell.col])
+  );
+}
+
+function clearRelatedNotes(game, row, col, number) {
+  const targets = new Map();
+  for (let index = 0; index < 9; index += 1) {
+    if (index !== col) {
+      targets.set(`${row}-${index}`, game.cells[row][index]);
+    }
+    if (index !== row) {
+      targets.set(`${index}-${col}`, game.cells[index][col]);
+    }
+  }
+  const startRow = Math.floor(row / 3) * 3;
+  const startCol = Math.floor(col / 3) * 3;
+  for (let currentRow = startRow; currentRow < startRow + 3; currentRow += 1) {
+    for (let currentCol = startCol; currentCol < startCol + 3; currentCol += 1) {
+      if (currentRow !== row || currentCol !== col) {
+        targets.set(`${currentRow}-${currentCol}`, game.cells[currentRow][currentCol]);
+      }
+    }
+  }
+  targets.forEach((cell) => {
+    cell.notes = cell.notes.filter((note) => note !== number);
+  });
+}
+
+function isNumberCompleteAcrossBlocks(game, number) {
+  for (let blockRow = 0; blockRow < 3; blockRow += 1) {
+    for (let blockCol = 0; blockCol < 3; blockCol += 1) {
+      let found = false;
+      for (let row = blockRow * 3; row < blockRow * 3 + 3; row += 1) {
+        for (let col = blockCol * 3; col < blockCol * 3 + 3; col += 1) {
+          if (game.cells[row][col].value === number) {
+            found = true;
+          }
+        }
+      }
+      if (!found) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+function getPlacedCount(game, number) {
+  let count = 0;
+  game.cells.forEach((row) =>
+    row.forEach((cell) => {
+      if (cell.value === number) {
+        count += 1;
+      }
+    })
+  );
+  return count;
+}
+function openScreen(name) {
+  Object.entries(screens).forEach(([key, element]) => {
+    element.classList.toggle("hidden", key !== name);
+  });
+  state.currentScreen = name;
+  if (name !== "game") {
+    state.gameHelpOpen = false;
+    renderGameHelpPanel();
+  }
+}
+
+function showOverlay(overlay) {
+  overlay.classList.remove("hidden");
+  overlay.setAttribute("aria-hidden", "false");
+}
+
+function hideOverlay(overlay) {
+  overlay.classList.add("hidden");
+  overlay.setAttribute("aria-hidden", "true");
+}
+
+function openFailOverlay() {
+  renderFailModal();
+  showOverlay(elements.failOverlay);
+}
+
+function closeFailOverlay() {
+  hideOverlay(elements.failOverlay);
+}
+
+function openSettings(context) {
+  state.settingsContext = context;
+  renderSettingsModal();
+  showOverlay(elements.settingsOverlay);
+}
+
+function closeSettings() {
+  hideOverlay(elements.settingsOverlay);
+}
+
+function openHelpModal() {
+  state.helpPage = 0;
+  renderHelpContent(elements.helpModalBody);
+  document.getElementById("helpModalTitle").textContent = t("helpTitle");
+  showOverlay(elements.helpOverlay);
+}
+
+function closeHelpModal() {
+  hideOverlay(elements.helpOverlay);
+}
+
+function openConfirm(type) {
+  state.confirmAction = type;
+  renderConfirmModal();
+  showOverlay(elements.confirmOverlay);
+}
+
+function closeConfirm() {
+  state.confirmAction = null;
+  hideOverlay(elements.confirmOverlay);
+}
+
+function showCompletionOverlay() {
+  renderCompleteModal();
+  showOverlay(elements.completeOverlay);
+}
+
+function closeCompletionOverlay() {
+  hideOverlay(elements.completeOverlay);
+}
+
 function renderHeroPreview() {
   elements.heroPreviewBoard.innerHTML = "";
-  PREVIEW_BOARD.forEach((row, rowIndex) => row.forEach((value, colIndex) => { const cell = document.createElement("div"); cell.className = "preview-cell"; if ((colIndex + 1) % 3 === 0 && colIndex !== 8) { cell.classList.add("block-right"); } if ((rowIndex + 1) % 3 === 0 && rowIndex !== 8) { cell.classList.add("block-bottom"); } if (value === 0) { cell.classList.add("soft"); cell.textContent = rowIndex % 2 === 0 ? "." : ""; } else { cell.textContent = String(value); } elements.heroPreviewBoard.appendChild(cell); }));
+  PREVIEW_BOARD.forEach((row, rowIndex) =>
+    row.forEach((value, colIndex) => {
+      const cell = document.createElement("div");
+      cell.className = "preview-cell";
+      if ((colIndex + 1) % 3 === 0 && colIndex !== 8) {
+        cell.classList.add("block-right");
+      }
+      if ((rowIndex + 1) % 3 === 0 && rowIndex !== 8) {
+        cell.classList.add("block-bottom");
+      }
+      if (value === 0) {
+        cell.classList.add("soft");
+        cell.textContent = rowIndex % 2 === 0 ? "." : "";
+      } else {
+        cell.textContent = String(value);
+      }
+      elements.heroPreviewBoard.appendChild(cell);
+    })
+  );
 }
+
 function renderHomeScreen() {
-  document.documentElement.lang = state.language; document.getElementById("homeEyebrow").textContent = t("homeEyebrow"); document.getElementById("homeTitle").textContent = t("homeTitle"); document.getElementById("homeCopy").textContent = t("homeCopy"); document.getElementById("homeHelpBtn").textContent = t("homeHelp"); document.getElementById("dailyEntryBtn").textContent = t("dailyEntry"); document.getElementById("startEntryBtn").textContent = t("startEntry");
+  document.documentElement.lang = state.language;
+  document.getElementById("homeEyebrow").textContent = t("homeEyebrow");
+  document.getElementById("homeTitle").textContent = t("homeTitle");
+  document.getElementById("homeCopy").textContent = t("homeCopy");
+  document.getElementById("homeHelpBtn").textContent = t("homeHelp");
+  document.getElementById("dailyEntryBtn").textContent = t("dailyEntry");
+  document.getElementById("startEntryBtn").textContent = t("startEntry");
 }
-function renderWeekdays() { elements.weekdayRow.innerHTML = ""; for (let index = 0; index < 7; index += 1) { const span = document.createElement("span"); span.textContent = t(`weekday${index}`); elements.weekdayRow.appendChild(span); } }
-function isFutureDate(month, day) { if (month > TODAY.month) { return true; } if (month < TODAY.month) { return false; } return day > TODAY.day; }
-function normalizeSelectedDate() { if (state.dailySelectedMonth > TODAY.month) { state.dailySelectedMonth = TODAY.month; state.dailySelectedDay = TODAY.day; } const maxDay = state.dailySelectedMonth === TODAY.month ? TODAY.day : daysInMonth(TODAY.year, state.dailySelectedMonth); if (state.dailySelectedDay > maxDay) { state.dailySelectedDay = maxDay; } }
+
+function renderWeekdays() {
+  elements.weekdayRow.innerHTML = "";
+  for (let index = 0; index < 7; index += 1) {
+    const span = document.createElement("span");
+    span.textContent = t(`weekday${index}`);
+    elements.weekdayRow.appendChild(span);
+  }
+}
+
+function isFutureDate(month, day) {
+  if (month > TODAY.month) {
+    return true;
+  }
+  if (month < TODAY.month) {
+    return false;
+  }
+  return day > TODAY.day;
+}
+
+function normalizeSelectedDate() {
+  if (state.dailySelectedMonth > TODAY.month) {
+    state.dailySelectedMonth = TODAY.month;
+    state.dailySelectedDay = TODAY.day;
+  }
+  const maxDay =
+    state.dailySelectedMonth === TODAY.month
+      ? TODAY.day
+      : daysInMonth(TODAY.year, state.dailySelectedMonth);
+  if (state.dailySelectedDay > maxDay) {
+    state.dailySelectedDay = maxDay;
+  }
+}
 function renderMonthTabs() {
   elements.monthTabs.innerHTML = "";
   for (let month = START_MONTH; month <= TODAY.month; month += 1) { const button = document.createElement("button"); button.type = "button"; button.className = "month-tab"; button.textContent = t("monthTab", { month }); if (month === state.dailySelectedMonth) { button.classList.add("active"); } button.addEventListener("click", () => { state.dailySelectedMonth = month; normalizeSelectedDate(); renderDailyScreen(); }); elements.monthTabs.appendChild(button); }
