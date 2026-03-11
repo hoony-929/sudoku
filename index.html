@@ -91,12 +91,16 @@
     <section id="gameScreen" class="screen screen-game hidden">
       <div class="game-panel">
         <div class="topbar topbar-game">
-          <div>
-            <div id="gameBadge" class="game-badge"></div>
-            <h2 id="gameTitle"></h2>
+          <div style="display: flex; align-items: center;">
+            <button id="gameBackBtn" class="icon-btn" type="button" aria-label="Back" style="margin-right: 12px;">&larr;</button>
+            <div>
+              <div id="gameBadge" class="game-badge"></div>
+              <h2 id="gameTitle"></h2>
+            </div>
           </div>
           <div id="mistakeMeta" class="mistake-meta"></div>
           <div class="game-header-actions">
+            <button id="gameHomeBtn" class="secondary-btn" type="button"></button>
             <button id="gameHelpBtn" class="icon-btn" type="button" aria-label="Help">?</button>
             <button id="gameSettingsBtn" class="icon-btn" type="button" aria-label="Settings">&#9881;</button>
           </div>
@@ -158,9 +162,6 @@
           <button class="language-btn" data-lang="ja" type="button">日本語</button>
           <button class="language-btn" data-lang="zh" type="button">中文</button>
         </div>
-      </div>
-      <div id="settingsHomeWrap" class="settings-home-wrap hidden">
-        <button id="settingsHomeBtn" class="secondary-btn block-btn" type="button"></button>
       </div>
     </div>
   </div>

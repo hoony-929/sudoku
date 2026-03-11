@@ -90,7 +90,9 @@ const TRANSLATIONS = {
     failTitle: "실패했습니다",
     failCopy: "오답 5회를 모두 사용했습니다. 다시 도전하거나 돌아갈 수 있습니다.",
     failRetry: "다시 도전",
-    failBack: "돌아가기"
+    failBack: "돌아가기",
+    backModalTitle: "뒤로 돌아가시겠습니까?",
+    backModalCopy: "진행 중인 내용은 유지되지 않습니다."
   },
   en: {
     homeEyebrow: "Minimal Sudoku",
@@ -176,7 +178,9 @@ const TRANSLATIONS = {
     failTitle: "Failed",
     failCopy: "You used all 5 mistakes. You can retry this puzzle or go back.",
     failRetry: "Retry",
-    failBack: "Go Back"
+    failBack: "Go Back",
+    backModalTitle: "Are you sure you want to go back?",
+    backModalCopy: "Your progress will be lost."
   },
   ja: {
     homeEyebrow: "Minimal Sudoku",
@@ -262,7 +266,9 @@ const TRANSLATIONS = {
     failTitle: "失敗しました",
     failCopy: "ミス 5 回をすべて使いました。同じパズルに再挑戦するか戻ることができます。",
     failRetry: "再挑戦",
-    failBack: "戻る"
+    failBack: "戻る",
+    backModalTitle: "戻りますか?",
+    backModalCopy: "進行中の内容は保存されません。"
   },
   zh: {
     homeEyebrow: "Minimal Sudoku",
@@ -348,7 +354,9 @@ const TRANSLATIONS = {
     failTitle: "失败了",
     failCopy: "你已用完 5 次错误机会。可以重新挑战或返回。",
     failRetry: "重新挑战",
-    failBack: "返回"
+    failBack: "返回",
+    backModalTitle: "确定要返回吗?",
+    backModalCopy: "当前进度将不会被保存。"
   }
 };
 
@@ -522,15 +530,15 @@ function renderNumberPad() {
   for (let number = 1; number <= 9; number += 1) { const button = document.createElement("button"); const value = document.createElement("span"); const count = document.createElement("span"); button.type = "button"; button.className = "number-pad-btn"; value.className = "number-pad-value"; count.className = "number-pad-count"; value.textContent = String(number); count.textContent = String(getPlacedCount(game, number)); button.disabled = isNumberCompleteAcrossBlocks(game, number); button.appendChild(value); button.appendChild(count); button.addEventListener("click", () => handleNumberInput(number)); elements.numberPad.appendChild(button); }
 }
 function renderGameMeta() {
-  const game = state.game; if (!game) { return; } elements.gameBadge.textContent = getGameBadgeText(game); elements.gameTitle.textContent = getGameTitleText(game); elements.mistakeMeta.textContent = t("mistakesLabel", { count: Math.min(game.mistakes, MAX_MISTAKES) }); elements.timerMeta.textContent = t("elapsedLabel", { time: formatSeconds(game.elapsedSeconds) }); elements.hintMeta.textContent = t("hintRemaining", { count: game.hintsRemaining }); elements.hintBtnLabel.textContent = t("hint"); elements.hintCount.textContent = String(game.hintsRemaining); document.getElementById("undoBtn").textContent = t("undo"); document.getElementById("eraseBtn").textContent = t("erase"); document.getElementById("noteBtn").textContent = t("note"); document.getElementById("noteBtn").classList.toggle("active", game.noteMode); document.getElementById("undoBtn").disabled = game.history.length === 0; document.getElementById("hintBtn").disabled = game.hintsRemaining === 0;
+  const game = state.game; if (!game) { return; } elements.gameBadge.textContent = getGameBadgeText(game); elements.gameTitle.textContent = getGameTitleText(game); elements.mistakeMeta.textContent = t("mistakesLabel", { count: Math.min(game.mistakes, MAX_MISTAKES) }); elements.timerMeta.textContent = t("elapsedLabel", { time: formatSeconds(game.elapsedSeconds) }); elements.hintMeta.textContent = t("hintRemaining", { count: game.hintsRemaining }); elements.hintBtnLabel.textContent = t("hint"); elements.hintCount.textContent = String(game.hintsRemaining); document.getElementById("gameHomeBtn").textContent = t("settingsHomeAction"); document.getElementById("undoBtn").textContent = t("undo"); document.getElementById("eraseBtn").textContent = t("erase"); document.getElementById("noteBtn").textContent = t("note"); document.getElementById("noteBtn").classList.toggle("active", game.noteMode); document.getElementById("undoBtn").disabled = game.history.length === 0; document.getElementById("hintBtn").disabled = game.hintsRemaining === 0;
 }
 function renderGameHelpPanel() { const isVisible = state.currentScreen === "game" && state.gameHelpOpen; elements.gameLayout.classList.toggle("help-open", isVisible); elements.gameHelpPanel.classList.toggle("hidden", !isVisible); if (isVisible) { elements.gameHelpPanelTitle.textContent = t("helpTitle"); renderHelpContent(elements.gameHelpPanelBody); } }
 function renderGame() { if (!state.game) { return; } renderGameMeta(); renderBoard(); renderNumberPad(); renderGameHelpPanel(); }
 function renderSettingsModal() {
-  const isGame = state.settingsContext === "game"; document.getElementById("settingsTitle").textContent = isGame ? t("settingsGameTitle") : t("settingsHomeTitle"); document.getElementById("settingsCopy").textContent = isGame ? t("settingsGameCopy") : t("settingsHomeCopy"); document.getElementById("settingsLanguageTitle").textContent = t("settingsLanguage"); document.getElementById("settingsHomeBtn").textContent = t("settingsHomeAction"); document.getElementById("settingsHomeWrap").classList.toggle("hidden", !isGame); document.querySelectorAll(".language-btn").forEach((button) => button.classList.toggle("active", button.dataset.lang === state.language));
+  const isGame = state.settingsContext === "game"; document.getElementById("settingsTitle").textContent = isGame ? t("settingsGameTitle") : t("settingsHomeTitle"); document.getElementById("settingsCopy").textContent = isGame ? t("settingsGameCopy") : t("settingsHomeCopy"); document.getElementById("settingsLanguageTitle").textContent = t("settingsLanguage"); document.querySelectorAll(".language-btn").forEach((button) => button.classList.toggle("active", button.dataset.lang === state.language));
 }
 function renderConfirmModal() {
-  const isRestart = state.confirmAction === "restartDaily"; document.getElementById("confirmTitle").textContent = isRestart ? t("restartModalTitle") : t("hintModalTitle"); document.getElementById("confirmCopy").textContent = isRestart ? t("restartModalCopy") : t("hintModalCopy"); document.getElementById("confirmCancelBtn").textContent = t("no"); document.getElementById("confirmConfirmBtn").textContent = t("yes");
+  const isRestart = state.confirmAction === "restartDaily"; const isBack = state.confirmAction === "backGame"; document.getElementById("confirmTitle").textContent = isRestart ? t("restartModalTitle") : (isBack ? t("backModalTitle") : t("hintModalTitle")); document.getElementById("confirmCopy").textContent = isRestart ? t("restartModalCopy") : (isBack ? t("backModalCopy") : t("hintModalCopy")); document.getElementById("confirmCancelBtn").textContent = t("no"); document.getElementById("confirmConfirmBtn").textContent = t("yes");
 }
 function renderCompleteModal() { document.getElementById("completeTitle").textContent = t("completeTitle"); document.getElementById("completeCopy").textContent = t("completeCopy"); document.getElementById("completeHomeBtn").textContent = t("completeHome"); }
 function renderFailModal() { document.getElementById("failTitle").textContent = t("failTitle"); document.getElementById("failCopy").textContent = t("failCopy"); document.getElementById("failRetryBtn").textContent = t("failRetry"); document.getElementById("failBackBtn").textContent = t("failBack"); }
@@ -677,7 +685,7 @@ function renderHelpContent(target) {
     });
   }
 }
-function confirmYes() { const action = state.confirmAction; closeConfirm(); if (action === "restartDaily") { startDailySession(); return; } if (action === "hint") { useHint(); } }
+function confirmYes() { const action = state.confirmAction; closeConfirm(); if (action === "restartDaily") { startDailySession(); return; } if (action === "hint") { useHint(); } if (action === "backGame") { goHome(); } }
 function handleFailRetry() { closeFailOverlay(); restartCurrentGame(); }
 function handleFailBack() { closeFailOverlay(); if (window.history.length > 1) { window.history.back(); return; } goHome(); }
 function isOverlayOpen() { return !elements.settingsOverlay.classList.contains("hidden") || !elements.confirmOverlay.classList.contains("hidden") || !elements.helpOverlay.classList.contains("hidden") || !elements.completeOverlay.classList.contains("hidden") || !elements.failOverlay.classList.contains("hidden"); }
@@ -697,10 +705,11 @@ function initializeEvents() {
   document.getElementById("difficultyBackBtn").addEventListener("click", goHome);
   document.getElementById("homeSettingsBtn").addEventListener("click", () => openSettings("home"));
   document.getElementById("gameSettingsBtn").addEventListener("click", () => openSettings("game"));
+  document.getElementById("gameBackBtn").addEventListener("click", () => openConfirm("backGame"));
   document.getElementById("gameHelpBtn").addEventListener("click", toggleGameHelpPanel);
   document.getElementById("gameHelpCloseBtn").addEventListener("click", () => { state.gameHelpOpen = false; renderGameHelpPanel(); });
   document.getElementById("settingsCloseBtn").addEventListener("click", closeSettings);
-  document.getElementById("settingsHomeBtn").addEventListener("click", goHome);
+  document.getElementById("gameHomeBtn").addEventListener("click", () => openConfirm("backGame"));
   document.getElementById("helpCloseBtn").addEventListener("click", closeHelpModal);
   document.getElementById("completeHomeBtn").addEventListener("click", goHome);
   document.getElementById("failRetryBtn").addEventListener("click", handleFailRetry);
