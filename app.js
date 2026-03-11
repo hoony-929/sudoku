@@ -32,6 +32,7 @@ const TRANSLATIONS = {
     completeTitle: "완료!",
     completeCopy: "모든 숫자를 채워 퍼즐을 해결했습니다.",
     completeHome: "처음으로",
+    completeBack: "돌아가기",
     settingsHomeTitle: "설정",
     settingsGameTitle: "게임 설정",
     settingsHomeCopy: "언어를 바꾸면 첫 화면 문구가 즉시 반영됩니다.",
@@ -120,6 +121,7 @@ const TRANSLATIONS = {
     completeTitle: "Complete!",
     completeCopy: "You filled every number and solved the puzzle.",
     completeHome: "Home",
+    completeBack: "Back",
     settingsHomeTitle: "Settings",
     settingsGameTitle: "Game Settings",
     settingsHomeCopy: "Changing the language updates the home screen immediately.",
@@ -208,6 +210,7 @@ const TRANSLATIONS = {
     completeTitle: "クリア!",
     completeCopy: "すべての数字を埋めてパズルを解きました。",
     completeHome: "ホームへ",
+    completeBack: "戻る",
     settingsHomeTitle: "設定",
     settingsGameTitle: "ゲーム設定",
     settingsHomeCopy: "言語を変えるとホーム画面の文言がすぐに切り替わります。",
@@ -296,6 +299,7 @@ const TRANSLATIONS = {
     completeTitle: "完成!",
     completeCopy: "你已经填满所有数字并完成了这道题。",
     completeHome: "回到首页",
+    completeBack: "返回",
     settingsHomeTitle: "设置",
     settingsGameTitle: "游戏设置",
     settingsHomeCopy: "切换语言后，首页文案会立刻更新。",
@@ -622,7 +626,7 @@ function renderSettingsModal() {
 function renderConfirmModal() {
   const isRestart = state.confirmAction === "restartDaily"; const isBack = state.confirmAction === "backGame"; document.getElementById("confirmTitle").textContent = isRestart ? t("restartModalTitle") : (isBack ? t("backModalTitle") : t("hintModalTitle")); document.getElementById("confirmCopy").textContent = isRestart ? t("restartModalCopy") : (isBack ? t("backModalCopy") : t("hintModalCopy")); document.getElementById("confirmCancelBtn").textContent = t("no"); document.getElementById("confirmConfirmBtn").textContent = t("yes");
 }
-function renderCompleteModal() { document.getElementById("completeTitle").textContent = t("completeTitle"); document.getElementById("completeCopy").textContent = t("completeCopy"); document.getElementById("completeHomeBtn").textContent = t("completeHome"); }
+function renderCompleteModal() { document.getElementById("completeTitle").textContent = t("completeTitle"); document.getElementById("completeCopy").textContent = t("completeCopy"); document.getElementById("completeHomeBtn").textContent = t("completeHome"); document.getElementById("completeBackBtn").textContent = t("completeBack"); }
 function renderFailModal() { document.getElementById("failTitle").textContent = t("failTitle"); document.getElementById("failCopy").textContent = t("failCopy"); document.getElementById("failRetryBtn").textContent = t("failRetry"); document.getElementById("failBackBtn").textContent = t("failBack"); }
 function renderAllStatic() { renderHomeScreen(); renderDailyScreen(); renderDifficultyScreen(); renderSettingsModal(); renderConfirmModal(); renderCompleteModal(); renderFailModal(); renderHelpContent(elements.helpModalBody); document.getElementById("helpModalTitle").textContent = t("helpTitle"); if (state.game) { renderGame(); } }
 function syncTimer(game) { game.elapsedSeconds = Math.floor((Date.now() - game.startedAt) / 1000); }
@@ -802,6 +806,7 @@ function initializeEvents() {
   document.getElementById("gameHomeBtn").addEventListener("click", () => openConfirm("backGame"));
   document.getElementById("helpCloseBtn").addEventListener("click", closeHelpModal);
   document.getElementById("completeHomeBtn").addEventListener("click", goHome);
+  document.getElementById("completeBackBtn").addEventListener("click", closeCompletionOverlay);
   document.getElementById("failRetryBtn").addEventListener("click", handleFailRetry);
   document.getElementById("failBackBtn").addEventListener("click", handleFailBack);
   document.getElementById("dailyStartBtn").addEventListener("click", startDailyChallenge);
