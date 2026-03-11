@@ -438,8 +438,18 @@ function clearRelatedNotes(game, row, col, number) {
   for (let currentRow = startRow; currentRow < startRow + 3; currentRow += 1) { for (let currentCol = startCol; currentCol < startCol + 3; currentCol += 1) { if (currentRow !== row || currentCol !== col) { targets.set(`${currentRow}-${currentCol}`, game.cells[currentRow][currentCol]); } } }
   targets.forEach((cell) => { cell.notes = cell.notes.filter((note) => note !== number); });
 }
-function isNumberCompleteAcrossBlocks(game, number) { for (let blockRow = 0; blockRow < 3; blockRow += 1) { for (let blockCol = 0; blockCol < 3; blockCol += 1) { let found = false; for (let row = blockRow * 3; row < blockRow * 3 + 3; row += 1) { for (let col = blockCol * 3; col < blockCol * 3 + 3; col += 1) { if (game.cells[row][col].value === number) { found = true; } } } if (!found) { return false; } } } return true; }
-function getPlacedCount(game, number) { let count = 0; game.cells.forEach((row) => row.forEach((cell) => { if (cell.value === number) { count += 1; } })); return count; }
+function isNumberCompleteAcrossBlocks(game, number) { return getPlacedCount(game, number) === 9; }
+function getPlacedCount(game, number) {
+  let count = 0;
+  for (let r = 0; r < 9; r += 1) {
+    for (let c = 0; c < 9; c += 1) {
+      if (game.cells[r][c].value === number) {
+        count += 1;
+      }
+    }
+  }
+  return count;
+}
 function openScreen(name) { Object.entries(screens).forEach(([key, element]) => { element.classList.toggle("hidden", key !== name); }); state.currentScreen = name; if (name !== "game") { state.gameHelpOpen = false; renderGameHelpPanel(); } }
 function showOverlay(overlay) { overlay.classList.remove("hidden"); overlay.setAttribute("aria-hidden", "false"); }
 function hideOverlay(overlay) { overlay.classList.add("hidden"); overlay.setAttribute("aria-hidden", "true"); }
@@ -499,7 +509,18 @@ function renderBoard() {
 }
 function renderNumberPad() {
   const game = state.game; elements.numberPad.innerHTML = ""; elements.numberPad.classList.toggle("note-active", game.noteMode);
-  for (let number = 1; number <= 9; number += 1) { const button = document.createElement("button"); const value = document.createElement("span"); const count = document.createElement("span"); button.type = "button"; button.className = "number-pad-btn"; value.className = "number-pad-value"; count.className = "number-pad-count"; value.textContent = String(number); count.textContent = String(getPlacedCount(game, number)); button.disabled = isNumberCompleteAcrossBlocks(game, number); button.appendChild(value); button.appendChild(count); button.addEventListener("click", () => handleNumberInput(number)); elements.numberPad.appendChild(button); }
+  const counts = new Array(10).fill(0);
+  for (let r = 0; r < 9; r += 1) {
+    for (let c = 0; c < 9; c += 1) {
+      const val = game.cells[r][c].value;
+      if (val > 0 && val <= 9) { counts[val] += 1; }
+    }
+  }
+  for (let number = 1; number <= 9; number += 1) {
+    const button = document.createElement("button"); const value = document.createElement("span"); const count = document.createElement("span");
+    const placedCount = counts[number];
+    button.type = "button"; button.className = "number-pad-btn"; value.className = "number-pad-value"; count.className = "number-pad-count"; value.textContent = String(number); count.textContent = String(placedCount); button.disabled = placedCount === 9; button.appendChild(value); button.appendChild(count); button.addEventListener("click", () => handleNumberInput(number)); elements.numberPad.appendChild(button);
+  }
 }
 function renderGameMeta() {
   const game = state.game; if (!game) { return; } elements.gameBadge.textContent = getGameBadgeText(game); elements.gameTitle.textContent = getGameTitleText(game); elements.mistakeMeta.textContent = t("mistakesLabel", { count: Math.min(game.mistakes, MAX_MISTAKES) }); elements.timerMeta.textContent = t("elapsedLabel", { time: formatSeconds(game.elapsedSeconds) }); elements.hintMeta.textContent = t("hintRemaining", { count: game.hintsRemaining }); elements.hintBtnLabel.textContent = t("hint"); elements.hintCount.textContent = String(game.hintsRemaining); document.getElementById("gameHomeBtn").textContent = t("settingsHomeAction"); document.getElementById("undoBtn").textContent = t("undo"); document.getElementById("eraseBtn").textContent = t("erase"); document.getElementById("noteBtn").textContent = t("note"); document.getElementById("noteBtn").classList.toggle("active", game.noteMode); document.getElementById("undoBtn").disabled = game.history.length === 0; document.getElementById("hintBtn").disabled = game.hintsRemaining === 0;
