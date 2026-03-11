@@ -394,8 +394,8 @@ function buildSession(options) {
 }
 function getSelectedCell(game) { return game?.selected ? game.cells[game.selected.row][game.selected.col] : null; }
 function updateHighlight(game) { const cell = getSelectedCell(game); game.highlightNumber = cell && cell.value !== 0 ? cell.value : null; }
-function saveHistory(game) { game.history.push({ cells: cloneCells(game.cells), selected: game.selected ? { ...game.selected } : null, noteMode: game.noteMode, hintsRemaining: game.hintsRemaining, completed: game.completed, highlightNumber: game.highlightNumber, mistakes: game.mistakes }); }
-function restoreSnapshot(game, snapshot) { game.cells = cloneCells(snapshot.cells); game.selected = snapshot.selected ? { ...snapshot.selected } : null; game.noteMode = snapshot.noteMode; game.hintsRemaining = snapshot.hintsRemaining; game.completed = snapshot.completed; game.highlightNumber = snapshot.highlightNumber; game.mistakes = snapshot.mistakes; game.blinkCells = new Set(); game.blinkToken = null; }
+function saveHistory(game) { game.history.push({ cells: cloneCells(game.cells), selected: game.selected ? { ...game.selected } : null, noteMode: game.noteMode, hintsRemaining: game.hintsRemaining, completed: game.completed, highlightNumber: game.highlightNumber }); }
+function restoreSnapshot(game, snapshot) { game.cells = cloneCells(snapshot.cells); game.selected = snapshot.selected ? { ...snapshot.selected } : null; game.noteMode = snapshot.noteMode; game.hintsRemaining = snapshot.hintsRemaining; game.completed = snapshot.completed; game.highlightNumber = snapshot.highlightNumber; game.blinkCells = new Set(); game.blinkToken = null; }
 function isRelated(row, col, selected) { return !!selected && (selected.row === row || selected.col === col || (Math.floor(selected.row / 3) === Math.floor(row / 3) && Math.floor(selected.col / 3) === Math.floor(col / 3))); }
 function getConflicts(game, row, col, number) {
   const seen = new Map(); if (!number) { return []; }
@@ -684,6 +684,7 @@ function initializeEvents() {
   bindOverlayClose(elements.helpOverlay, closeHelpModal); bindOverlayClose(elements.settingsOverlay, closeSettings); bindOverlayClose(elements.confirmOverlay, closeConfirm); document.addEventListener("keydown", handleKeydown);
 }
 renderHeroPreview(); normalizeSelectedDate(); renderAllStatic(); openScreen("home"); closeCompletionOverlay(); closeSettings(); closeConfirm(); closeHelpModal(); initializeEvents();
+
 
 
 
