@@ -782,6 +782,7 @@ function renderHelpContent(target) {
 function confirmYes() { const action = state.confirmAction; closeConfirm(); if (action === "restartDaily") { startDailySession(); return; } if (action === "hint") { useHint(); } if (action === "backGame") { goHome(); } }
 function handleFailRetry() { closeFailOverlay(); restartCurrentGame(); }
 function handleFailBack() { closeFailOverlay(); if (window.history.length > 1) { window.history.back(); return; } goHome(); }
+function handleCompleteBack() { closeCompletionOverlay(); stopCurrentGameTimer(); if (state.game && state.game.titleMode === "daily") { openScreen("daily"); } else { openScreen("difficulty"); } }
 function isOverlayOpen() { return !elements.settingsOverlay.classList.contains("hidden") || !elements.confirmOverlay.classList.contains("hidden") || !elements.helpOverlay.classList.contains("hidden") || !elements.completeOverlay.classList.contains("hidden") || !elements.failOverlay.classList.contains("hidden"); }
 function handleKeydown(event) {
   if (event.key === "Escape") { if (!elements.helpOverlay.classList.contains("hidden")) { closeHelpModal(); return; } if (!elements.settingsOverlay.classList.contains("hidden")) { closeSettings(); return; } if (!elements.confirmOverlay.classList.contains("hidden")) { closeConfirm(); return; } if (state.gameHelpOpen) { state.gameHelpOpen = false; renderGameHelpPanel(); } return; }
@@ -806,7 +807,7 @@ function initializeEvents() {
   document.getElementById("gameHomeBtn").addEventListener("click", () => openConfirm("backGame"));
   document.getElementById("helpCloseBtn").addEventListener("click", closeHelpModal);
   document.getElementById("completeHomeBtn").addEventListener("click", goHome);
-  document.getElementById("completeBackBtn").addEventListener("click", closeCompletionOverlay);
+  document.getElementById("completeBackBtn").addEventListener("click", handleCompleteBack);
   document.getElementById("failRetryBtn").addEventListener("click", handleFailRetry);
   document.getElementById("failBackBtn").addEventListener("click", handleFailBack);
   document.getElementById("dailyStartBtn").addEventListener("click", startDailyChallenge);
