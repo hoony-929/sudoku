@@ -449,11 +449,6 @@ function openSettings(context) { state.settingsContext = context; renderSettings
 function closeSettings() { hideOverlay(elements.settingsOverlay); }
 function openHelpModal() { state.helpPage = 0; renderHelpContent(elements.helpModalBody); document.getElementById("helpModalTitle").textContent = t("helpTitle"); showOverlay(elements.helpOverlay); }
 function closeHelpModal() { hideOverlay(elements.helpOverlay); }
-function getHelpPages() { return [{ title: t("helpRulesTitle"), subtitle: t("helpStepRulesRow"), body: t("helpRule1"), example: "row" }, { title: t("helpRulesTitle"), subtitle: t("helpStepRulesColumn"), body: t("helpRule2"), example: "column" }, { title: t("helpRulesTitle"), subtitle: t("helpStepRulesBlock"), body: t("helpRule3"), example: "block" }, { title: t("helpControlsTitle"), subtitle: t("helpStepControls"), list: [t("helpControl1"), t("helpControl2"), t("helpControl3"), t("helpControl4"), t("helpControl5")], example: "controls" }]; }
-function getHelpExampleBoard(type) { const empty = Array.from({ length: 81 }, () => ""); if (type === "row") { empty[9] = "5"; empty[11] = "3"; empty[13] = "5"; empty[15] = "8"; return { cells: empty, focus: [1], conflicts: [9, 13] }; } if (type === "column") { empty[2] = "7"; empty[20] = "4"; empty[38] = "7"; empty[56] = "9"; return { cells: empty, focus: [2], conflicts: [2, 38] }; } empty[0] = "2"; empty[1] = "8"; empty[10] = "2"; empty[20] = "6"; return { cells: empty, block: 0, conflicts: [0, 10] }; }
-function renderHelpExample(example) { if (example === "controls") { return `<div class="help-controls-visual"><div class="help-chip-row"><span class="help-chip">1 2 3 4 5 6 7 8 9</span></div><div class="help-chip-row"><span class="help-chip">Undo</span><span class="help-chip">Erase</span><span class="help-chip active">Note</span><span class="help-chip">Hint</span></div><div class="help-keyboard">Keyboard: 1-9 / Delete / Backspace</div></div>`; } const board = getHelpExampleBoard(example); const cells = board.cells.map((value, index) => { const row = Math.floor(index / 9); const col = index % 9; const classes = ["help-mini-cell"]; if ((col + 1) % 3 === 0 && col !== 8) { classes.push("block-right"); } if ((row + 1) % 3 === 0 && row !== 8) { classes.push("block-bottom"); } if (board.focus?.includes(row) || board.focus?.includes(col)) { classes.push("focus"); } if (typeof board.block === "number" && Math.floor(row / 3) * 3 + Math.floor(col / 3) === board.block) { classes.push("focus"); } if (board.conflicts.includes(index)) { classes.push("conflict"); } if (value) { classes.push("filled"); } return `<div class="${classes.join(" ")}">${value}</div>`; }).join(""); return `<div class="help-example-board">${cells}</div>`; }
-function refreshHelpViews() { if (!elements.helpOverlay.classList.contains("hidden")) { renderHelpContent(elements.helpModalBody); document.getElementById("helpModalTitle").textContent = t("helpTitle"); } if (state.currentScreen === "game" && state.gameHelpOpen) { renderGameHelpPanel(); } }
-function changeHelpPage(offset) { const pages = getHelpPages(); state.helpPage = Math.max(0, Math.min(pages.length - 1, state.helpPage + offset)); refreshHelpViews(); }
 function openConfirm(type) { state.confirmAction = type; renderConfirmModal(); showOverlay(elements.confirmOverlay); }
 function closeConfirm() { state.confirmAction = null; hideOverlay(elements.confirmOverlay); }
 function showCompletionOverlay() { renderCompleteModal(); showOverlay(elements.completeOverlay); }
@@ -461,29 +456,6 @@ function closeCompletionOverlay() { hideOverlay(elements.completeOverlay); }
 function renderHeroPreview() {
   elements.heroPreviewBoard.innerHTML = "";
   PREVIEW_BOARD.forEach((row, rowIndex) => row.forEach((value, colIndex) => { const cell = document.createElement("div"); cell.className = "preview-cell"; if ((colIndex + 1) % 3 === 0 && colIndex !== 8) { cell.classList.add("block-right"); } if ((rowIndex + 1) % 3 === 0 && rowIndex !== 8) { cell.classList.add("block-bottom"); } if (value === 0) { cell.classList.add("soft"); cell.textContent = rowIndex % 2 === 0 ? "." : ""; } else { cell.textContent = String(value); } elements.heroPreviewBoard.appendChild(cell); }));
-}
-function renderHelpContent(target) {
-  const pages = getHelpPages();
-  const page = pages[state.helpPage];
-  const listHtml = page.list ? `<ul>${page.list.map((item) => `<li>${item}</li>`).join("")}</ul>` : `<p>${page.body}</p>`;
-  target.innerHTML = `<div class="help-carousel"><div class="help-page-meta">${state.helpPage + 1} / ${pages.length}</div><section><p>${t("helpIntro")}</p><h3>${page.title}</h3><div class="help-subtitle">${page.subtitle}</div>${listHtml}</section><section>${renderHelpExample(page.example)}</section><div class="help-nav"><button type="button" class="secondary-btn help-nav-btn" data-help-nav="prev" ${state.helpPage === 0 ? "disabled" : ""}>${t("helpPrev")}</button><button type="button" class="primary-btn help-nav-btn" data-help-nav="next">${state.helpPage === pages.length - 1 ? t("helpDone") : t("helpNext")}</button></div></div>`;
-  const prevButton = target.querySelector('[data-help-nav="prev"]');
-  const nextButton = target.querySelector('[data-help-nav="next"]');
-  if (prevButton) { prevButton.addEventListener("click", () => changeHelpPage(-1)); }
-  if (nextButton) {
-    nextButton.addEventListener("click", () => {
-      if (state.helpPage === pages.length - 1) {
-        if (target === elements.helpModalBody) {
-          closeHelpModal();
-        } else {
-          state.gameHelpOpen = false;
-          renderGameHelpPanel();
-        }
-        return;
-      }
-      changeHelpPage(1);
-    });
-  }
 }
 function renderHomeScreen() {
   document.documentElement.lang = state.language; document.getElementById("homeEyebrow").textContent = t("homeEyebrow"); document.getElementById("homeTitle").textContent = t("homeTitle"); document.getElementById("homeCopy").textContent = t("homeCopy"); document.getElementById("homeHelpBtn").textContent = t("homeHelp"); document.getElementById("dailyEntryBtn").textContent = t("dailyEntry"); document.getElementById("startEntryBtn").textContent = t("startEntry");
