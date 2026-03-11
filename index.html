@@ -91,9 +91,12 @@
     <section id="gameScreen" class="screen screen-game hidden">
       <div class="game-panel">
         <div class="topbar topbar-game">
-          <div>
-            <div id="gameBadge" class="game-badge"></div>
-            <h2 id="gameTitle"></h2>
+          <div style="display: flex; align-items: center;">
+            <button id="gameBackBtn" class="icon-btn" type="button" aria-label="Back" style="margin-right: 12px;">&larr;</button>
+            <div>
+              <div id="gameBadge" class="game-badge"></div>
+              <h2 id="gameTitle"></h2>
+            </div>
           </div>
           <div id="mistakeMeta" class="mistake-meta"></div>
           <div class="game-header-actions">
