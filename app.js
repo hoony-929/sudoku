@@ -629,33 +629,18 @@ function clearRelatedNotes(game, row, col, number) {
 }
 
 function isNumberCompleteAcrossBlocks(game, number) {
-  for (let blockRow = 0; blockRow < 3; blockRow += 1) {
-    for (let blockCol = 0; blockCol < 3; blockCol += 1) {
-      let found = false;
-      for (let row = blockRow * 3; row < blockRow * 3 + 3; row += 1) {
-        for (let col = blockCol * 3; col < blockCol * 3 + 3; col += 1) {
-          if (game.cells[row][col].value === number) {
-            found = true;
-          }
-        }
-      }
-      if (!found) {
-        return false;
-      }
-    }
-  }
-  return true;
+  return getPlacedCount(game, number) === 9;
 }
 
 function getPlacedCount(game, number) {
   let count = 0;
-  game.cells.forEach((row) =>
-    row.forEach((cell) => {
-      if (cell.value === number) {
+  for (let r = 0; r < 9; r += 1) {
+    for (let c = 0; c < 9; c += 1) {
+      if (game.cells[r][c].value === number) {
         count += 1;
       }
-    })
-  );
+    }
+  }
   return count;
 }
 function openScreen(name) {
